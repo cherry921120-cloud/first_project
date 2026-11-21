@@ -22,7 +22,7 @@ from flask import Flask, jsonify, request, send_from_directory
 ROOT = Path(__file__).resolve().parent
 ASSETS = frozenset({
     "index.html", "alignment-viewer.js", "figure-export.js", "project.js",
-    "tm-annotations.js", "tm-annotations.css", "prediction-client.js", "prediction-config.js",
+    "tm-annotations.js", "tm-annotations.css", "prediction-client.js", "prediction-config.js", "uniprot-report.js",
 })
 SEQUENCE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 PROTEIN = re.compile(r"[ACDEFGHIKLMNPQRSTVWYX]+")

@@ -45,6 +45,7 @@
       geneStyles: [...tmGeneAppearance],
       regionColors: Object.fromEntries(styleModes.map(mode => [mode, [...tmRegionColors[mode]]])),
       evidence: [...tmEvidence],
+      uniProtLookups: [...tmUniProtLookups],
       annotationSources: [...tmAnnotationSources],
       lookup: [...$('tmLookupInputs').querySelectorAll('[data-lookup]')].map(card => [
         card.dataset.lookup, {
@@ -94,6 +95,13 @@
     });
   }
 
+  function validUniProtLookup(record) {
+    return isRecord(record)
+      && ['sequenceId', 'accession', 'proteinName', 'geneName', 'organism', 'entryType', 'release', 'retrievedAt']
+        .every(key => isString(record[key]))
+      && isId(record.length) && Number.isSafeInteger(record.tmCount) && record.tmCount >= 0;
+  }
+
   function validControl(id, value) {
     const input = $(id);
     if (input.type === 'checkbox') return isBoolean(value);
@@ -125,12 +133,16 @@
       || !styleModes.every(mode => pairsOf(state.regionColors[mode], isColor)))) {
       throw Error('專案檔的 TM 區段顏色設定有誤。');
     }
+    if (state.uniProtLookups !== undefined && !pairsOf(state.uniProtLookups, validUniProtLookup)) {
+      throw Error('專案檔的 UniProt 查閱資料有誤。');
+    }
     if (!isRecord(state.view) || !isString(state.view.search)
       || !listOf(state.view.hiddenNames, isString)) {
       throw Error('專案檔的序列顯示設定有誤。');
     }
     if (!isRecord(state.figure)
       || !['scope', 'start', 'end', 'preset', 'background'].every(key => isString(state.figure[key]))
+      || (state.figure.uniProtReport !== undefined && !isBoolean(state.figure.uniProtReport))
       || !listOf(state.figure.names, isString)) {
       throw Error('專案檔的匯出設定有誤。');
     }
@@ -165,6 +177,7 @@
     }
     replaceMap(tmGeneAppearance, next.geneStyles);
     replaceMap(tmEvidence, next.evidence);
+    replaceMap(tmUniProtLookups, next.uniProtLookups ?? []);
     replaceMap(tmAnnotationSources, next.annotationSources);
     const lookup = new Map(next.lookup);
     for (const card of $('tmLookupInputs').querySelectorAll('[data-lookup]')) {

@@ -34,10 +34,11 @@
 .figure-document>.figure-output{overflow:auto}
 .figure-document h1,#alignmentPrint h1{font-size:18px}
 .figure-measure,#alignmentPrint.figure-measure{display:block;position:fixed;top:0;left:-20000px;width:max-content;visibility:hidden;pointer-events:none}
-#alignmentPrint{display:none}
+#alignmentPrint,#alignmentPrintReport{display:none}
 @media print{
  body.figure-print-active>.wrap{display:none}
  #alignmentPrint{display:block;zoom:var(--figure-print-scale,1);print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ #alignmentPrintReport{display:block;break-before:page}
 }
 
 #toggleMobileSettings{display:none}
@@ -245,6 +246,8 @@
   <div><label for="exportPreset">出圖預設</label><select id="exportPreset"><option value="current">沿用預覽排版</option><option value="presentation">簡報（大字、PNG 2×）</option><option value="report">報告（緊湊、PNG 3×）</option></select></div>
   <div><label for="exportPngBackground">PNG 背景</label><select id="exportPngBackground"><option value="white">白底</option><option value="transparent">透明</option></select></div>
  </div>
+ <label class="check"><input type="checkbox" id="exportUniProtReport" aria-describedby="exportUniProtHelp">附上 UniProt 查閱報告</label>
+ <div id="exportUniProtHelp" class="hint">所選的 HTML、SVG 或 PNG 將與報告一起下載為 ZIP。列印／PDF 時，報告另起一頁。</div>
  <div id="exportStatus" class="hint" role="status"></div>
  <div class="buttons">
   <button type="button" id="exportHtml" disabled>下載 HTML</button>
@@ -697,6 +700,7 @@ function uniprotRanges(entry, sequence, capture = () => {}) {
   });
 }
 const tmEvidence = new Map();
+const tmUniProtLookups = new Map();
 function evidenceReport() {
  const current = new Map();
  if (data && tmEvidence.size) {
@@ -932,6 +936,18 @@ function showLookupResults(rows) {
  }).join('');
  $('tmLookupResults').innerHTML = rows.map(row=>`<div class="tm-gene-card hint"><strong>${escapeHTML(row.name)}</strong><div>${escapeHTML(row.message)}</div>${links(row.entries || [])}</div>`).join('');
 }
+function summarizeUniProtEntry(sequenceId, entry, accession, release, retrievedAt, tmCount) {
+ const text = value => typeof value === 'string' ? value : '';
+ const description = entry.proteinDescription;
+ return {
+  sequenceId, accession:text(entry.primaryAccession) || accession,
+  proteinName:text(description?.recommendedName?.fullName?.value) || text(description?.submissionNames?.[0]?.fullName?.value),
+  geneName:text(entry.genes?.[0]?.geneName?.value),
+  organism:text(entry.organism?.scientificName),
+  length:entry.sequence.value.length,
+  entryType:text(entry.entryType), release:text(release), retrievedAt, tmCount
+ };
+}
 $('tmFetch').onclick = async () => {
  const status = $('tmFetchStatus');
  const dataset = data;
@@ -945,7 +961,7 @@ $('tmFetch').onclick = async () => {
   }
   manual.set(name, accession);
  }
- const results = new Map(), evidence = new Map(), lookupRows = [];
+ const results = new Map(), evidence = new Map(), lookups = new Map(), lookupRows = [];
  const lookupInputs = new Map([...$('tmLookupInputs').querySelectorAll('[data-lookup]')].map(card =>
   [card.dataset.lookup,{gene:card.querySelector('[data-gene]').value.trim(),species:card.querySelector('[data-species]').value.trim()}]));
  resetPendingTm();
@@ -980,6 +996,7 @@ $('tmFetch').onclick = async () => {
      source:'UniProt', accession:entry.primaryAccession || accession, queriedAccession:accession,
      endpoint, retrievedAt, release, feature
     }));
+    lookups.set(name,summarizeUniProtEntry(name,entry,accession,release,retrievedAt,ranges.length));
     if (ranges.length) results.set(name, ranges);
     lookupRows.push({name,entries:[entry],message:ranges.length
      ? '完整序列相符，'+ranges.length+' 個 TM 待確認。'
@@ -987,9 +1004,11 @@ $('tmFetch').onclick = async () => {
    } catch (error) { lookupRows.push({name,message:(accession ? accession+' · ' : '')+error.message}); }
   }
   if (data === dataset) {
+   for (const [name, lookup] of lookups) tmUniProtLookups.set(name, lookup);
    previewSourceRows(results,'uniprot',evidence);
    showLookupResults(lookupRows);
    status.textContent = lookupRows.length+' 條序列已查詢。';
+   if (lookups.size) document.dispatchEvent(new Event('projectchange'));
   }
  } finally {
   $('tmFetch').disabled = false;
@@ -1088,6 +1107,7 @@ function setData(text, name, {onLoad} = {}) {
  alignmentSourceName = name;
  $('demoGuide').hidden = true;
  tmEvidence.clear();
+ tmUniProtLookups.clear();
  tmAnnotationSources.clear();
  tmGeneAppearance.clear();
  tmRegionColors.individual.clear();
@@ -1203,6 +1223,7 @@ $('demo').onclick = () => {
 };
 renderGroups();
 </script>
+<script src="uniprot-report.js" defer></script>
 <script src="figure-export.js" defer></script>
 <script src="project.js" defer></script>
 <script src="prediction-config.js" defer></script>

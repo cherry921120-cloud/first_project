@@ -6,6 +6,7 @@
 !tm-annotations.js
 !tm-annotations.css
 !figure-export.js
+!uniprot-report.js
 !project.js
 !prediction-config.js
 !prediction-client.js

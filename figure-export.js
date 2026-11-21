@@ -13,6 +13,7 @@ function getFigureExportState() {
   end: $('exportEnd').value,
   preset: $('exportPreset').value,
   background: $('exportPngBackground').value,
+  uniProtReport: $('exportUniProtReport').checked,
   names: [...$('exportNames').querySelectorAll('input:checked')].map(input => input.value),
  };
 }
@@ -22,6 +23,7 @@ function setFigureExportState(state) {
  $('exportScope').value = state.scope === 'range' ? 'range' : 'all';
  $('exportPreset').value = Object.hasOwn(figurePresets, state.preset) ? state.preset : 'current';
  $('exportPngBackground').value = state.background === 'transparent' ? 'transparent' : 'white';
+ $('exportUniProtReport').checked = state.uniProtReport === true;
  for (const [id, value] of [['exportStart', state.start], ['exportEnd', state.end]]) {
   if (['number', 'string'].includes(typeof value) && /^\d*$/.test(String(value))) {
    $(id).value = String(value);
@@ -56,6 +58,7 @@ function getFigureOptions() {
   padding,
   scale,
   background: state.background,
+  uniProtReport: state.uniProtReport,
  };
 }
 
@@ -108,7 +111,7 @@ function getFigureMarkup(options) {
  return buildAlignment(data, options.settings, tracks, {...options, interactive: false});
 }
 
-function getFigureEvidence(tag, options) {
+function getFigureEvidenceReport(options) {
  const report = evidenceReport();
  const selected = new Set(options.names);
  report.records = report.records.filter(record => {
@@ -116,9 +119,29 @@ function getFigureEvidence(tag, options) {
   const columns = record.currentAlignmentColumns ?? record.originalAlignmentColumns ?? [];
   return columns.some(column => column > options.start && column <= options.end);
  });
+ return report;
+}
+
+function getFigureEvidence(tag, options) {
+ const report = getFigureEvidenceReport(options);
  return report.records.length
   ? `<${tag} id="tm-source-evidence">${escapeHTML(JSON.stringify(report))}</${tag}>`
   : '';
+}
+
+function getFigureUniProtReport(options) {
+ const {alignment, records} = getFigureEvidenceReport(options);
+ const selected = new Set(options.names);
+ const lookups = [...tmUniProtLookups.values()].filter(entry => selected.has(entry.sequenceId));
+ const uniProtRecords = records.filter(record => record.source === 'UniProt');
+ if (!lookups.length && !uniProtRecords.length) return null;
+ return {alignment, rangeStart:options.start + 1, rangeEnd:options.end, lookups, records:uniProtRecords};
+}
+
+function showMissingUniProtReport(options, report) {
+ if (options.uniProtReport && !report) {
+  $('exportStatus').textContent += '。此匯出範圍沒有 UniProt 查閱資料，已略過報告。';
+ }
 }
 
 function getFigureTitle(options) {
@@ -241,6 +264,7 @@ async function pngFigure(options) {
 
 function prepareFigurePrint(options) {
  if ($('alignmentPrint')) return;
+ const report = options.uniProtReport ? getFigureUniProtReport(options) : null;
  const figure = makeFigureContainer(options);
  figure.id = 'alignmentPrint';
  const title = document.createElement('h1');
@@ -251,11 +275,19 @@ function prepareFigurePrint(options) {
  const width = figure.querySelector('.alignment').getBoundingClientRect().width;
  figure.classList.remove('figure-measure');
  figure.style.setProperty('--figure-print-scale', Math.min(1, 930 / width));
+ if (report) {
+  const appendix = document.createElement('div');
+  appendix.id = 'alignmentPrintReport';
+  appendix.innerHTML = '<style>'+uniProtReportStyles+'</style>'+uniProtReportBody(report);
+  document.body.append(appendix);
+ }
+ showMissingUniProtReport(options, report);
  document.body.classList.add('figure-print-active');
 }
 
 function clearFigurePrint() {
  $('alignmentPrint')?.remove();
+ $('alignmentPrintReport')?.remove();
  document.body.classList.remove('figure-print-active');
 }
 
@@ -269,12 +301,28 @@ async function downloadFigure(format) {
  try {
   updateFigureExport();
   const options = getFigureOptions();
+  const report = options.uniProtReport ? getFigureUniProtReport(options) : null;
+  const filename = 'protein_alignment_colored.'+format;
+  let content, type;
   if (format === 'html') {
-   saveBlob(htmlFigure(options), 'text/html;charset=utf-8', 'protein_alignment_colored.html');
+   content = htmlFigure(options);
+   type = 'text/html;charset=utf-8';
   } else if (format === 'svg') {
-   saveBlob(svgFigure(options).markup, 'image/svg+xml;charset=utf-8', 'protein_alignment_colored.svg');
+   content = svgFigure(options).markup;
+   type = 'image/svg+xml;charset=utf-8';
   } else {
-   saveBlob(await pngFigure(options), 'image/png', 'protein_alignment_colored.png');
+   content = await pngFigure(options);
+   type = 'image/png';
+  }
+  if (report) {
+   const zip = await createUniProtReportZip([
+    {name:filename, content},
+    {name:'uniprot_report.html', content:uniProtReportDocument(report)}
+   ]);
+   saveBlob(zip, 'application/zip', 'protein_alignment_'+format+'_with_uniprot.zip');
+  } else {
+   saveBlob(content, type, filename);
+   showMissingUniProtReport(options, report);
   }
  } catch (error) {
   figureError(error);
