@@ -1,0 +1,44 @@
+name: Clustal smoke checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clustal-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/clustal-tests" --no-save --package-lock=false --ignore-scripts playwright@1.62.1
+          "$RUNNER_TEMP/clustal-tests/node_modules/.bin/playwright" install --with-deps chromium
+          echo "NODE_PATH=$RUNNER_TEMP/clustal-tests/node_modules" >> "$GITHUB_ENV"
+
+      - name: Exercise the local page in Chromium
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > "$RUNNER_TEMP/clustal-http.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          curl --fail --silent --show-error --retry 5 --retry-connrefused http://127.0.0.1:8765/ --output /dev/null
+          node .github/scripts/smoke.cjs http://127.0.0.1:8765/
+
+      - name: Verify the published GitHub Pages revision
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: >-
+          node .github/scripts/smoke.cjs
+          https://cherry921120-cloud.github.io/first_project/
+          --wait-for-deploy
