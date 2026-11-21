@@ -35,6 +35,7 @@ jobs:
           trap 'kill "$server_pid"' EXIT
           curl --fail --silent --show-error --retry 5 --retry-connrefused http://127.0.0.1:8765/ --output /dev/null
           node .github/scripts/smoke.cjs http://127.0.0.1:8765/
+          node .github/scripts/prediction-smoke.cjs http://127.0.0.1:8765/
 
       - name: Verify the published GitHub Pages revision
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

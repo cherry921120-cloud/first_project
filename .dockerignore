@@ -1,0 +1,11 @@
+**
+!requirements-prediction.txt
+!prediction_server.py
+!index.html
+!alignment-viewer.js
+!tm-annotations.js
+!tm-annotations.css
+!figure-export.js
+!project.js
+!prediction-config.js
+!prediction-client.js

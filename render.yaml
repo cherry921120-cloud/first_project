@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: clustal-tm-prediction
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: BIOLIB_TOKEN
+        sync: false
+      - key: PREDICTION_ALLOWED_ORIGIN
+        value: https://cherry921120-cloud.github.io

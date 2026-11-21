@@ -87,6 +87,11 @@
   <button class="secondary" id="loadPaste" type="button">讀取貼上的內容</button>
  </details>
  <div id="status" class="hint" role="status"></div>
+ <div class="group">
+  <button id="predictionRun" type="button" disabled aria-describedby="predictionHelp predictionStatus">一鍵預測 TM 並標註</button>
+  <div id="predictionHelp" class="hint">按下後，蛋白質序列會送往已設定的 DeepTMHMM 預測服務。結果會自動標在比對的各條序列下方。</div>
+  <div id="predictionStatus" class="hint" role="status"></div>
+ </div>
  <details>
   <summary>專案存檔與編輯紀錄</summary>
   <div class="group">
@@ -642,8 +647,8 @@ for (const id of ['tmMajorityKind','tmStyleTarget']) $(id).addEventListener('cha
 for (const id of ['tmMajorityValue','tmAbsent','tmConsensusOverride']) $(id).addEventListener('input', render);
 const accessionPattern = /^(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})$/;
 const ungapped = sequence => sequence.replace(/[-.]/g, '');
-function sourceLines(name, ranges) {
- return ranges.map(([start, end], i) => [name, 'TM'+(i+1), start, end].join(' '));
+function sourceLines(name, ranges, regionPrefix = 'TM') {
+ return ranges.map(([start, end], i) => [name, regionPrefix+(i+1), start, end].join(' '));
 }
 function uniprotRanges(entry, sequence, capture = () => {}) {
  if (entry.sequence?.value !== ungapped(sequence)) throw Error('完整序列與 UniProt 條目不同');
@@ -740,10 +745,10 @@ $('tmPending').addEventListener('click', event => {
  $('tmFetchStatus').textContent += '\n已新增 '+count+' 個區段。'
   + (skipped ? ' 已保留 '+skipped+' 個原有的同名區段。' : '');
 });
-function applySourceRows(results, source, evidence = new Map()) {
+function applySourceRows(results, source, evidence = new Map(), regionPrefix = 'TM') {
  const previous = $('tmInput').value.trim().split(/\r?\n/).filter(line=>line.trim());
  const keys = new Set(previous.map(line=>line.trim().split(/\s+/).slice(0,2).join(' ')));
- const additional = [...results].flatMap(([name,ranges])=>sourceLines(name,ranges))
+ const additional = [...results].flatMap(([name,ranges])=>sourceLines(name,ranges,regionPrefix))
   .filter(line=>!keys.has(line.split(' ').slice(0,2).join(' ')));
  if (!additional.length) return 0;
  $('tmInput').value = [...previous,...additional].join('\n');
@@ -941,30 +946,33 @@ $('tmFetch').onclick = async () => {
   $('tmDeepPaste').disabled = false;
  }
 };
-function deepTmRows(raw, dataset, fileName) {
+function deepTmRows(raw, dataset, fileName, {identifiers, regionPrefix = 'TM'} = {}) {
  const lines = raw.split(/\r?\n/).map((line, index) => ({text:line.trim(), number:index+1}))
   .filter(line => line.text);
  const results = new Map(), evidence = new Map(), report = [], seen = new Set();
+ let matchedCount = 0;
  if (!lines.length || lines.length % 3) throw Error('請選擇 DeepTMHMM 的 predicted_topologies.3line。');
  const importedAt = new Date().toISOString();
  for (let i=0; i<lines.length; i+=3) {
   const [header, sequence, topology] = lines.slice(i,i+3).map(line => line.text);
-  const name = header.startsWith('>') ? header.slice(1).trim().split(/\s+/)[0] : '';
-  if (!name || topology.length !== sequence.length || !/^[MBSIOP]+$/.test(topology)) {
+  const recordId = header.startsWith('>') ? header.slice(1).trim().split(/\s+/)[0] : '';
+  if (!recordId || topology.length !== sequence.length || !/^[MBSIOP]+$/.test(topology)) {
    throw Error('第 '+lines[i].number+' 行起的三行格式有誤。請確認序列與拓樸標記的長度相同。');
   }
-  if (seen.has(name)) throw Error('重複的序列 ID：'+name);
-  seen.add(name);
+  if (seen.has(recordId)) throw Error('重複的序列 ID：'+recordId);
+  seen.add(recordId);
+  const name = identifiers ? identifiers.get(recordId) : recordId;
   if (!dataset.seqs.has(name)) {
-   report.push(name+'：目前比對中找不到這個序列 ID');
+   report.push((name || recordId)+'：目前比對中找不到這個序列 ID');
    continue;
   }
   if (ungapped(dataset.seqs.get(name)) !== sequence.toUpperCase()) {
    report.push(name+'：預測結果的完整序列與目前比對不符');
    continue;
   }
+  matchedCount++;
   const ranges = [...topology.matchAll(/M+|B+/g)].map((m,index) => {
-   evidence.set(name+' TM'+(index+1),{
+   evidence.set(name+' '+regionPrefix+(index+1),{
     source:'DeepTMHMM', kind:'imported_prediction', fileName, header, topology,
     topologySegment:m[0], importedAt
    });
@@ -973,7 +981,7 @@ function deepTmRows(raw, dataset, fileName) {
   if (ranges.length) results.set(name,ranges);
   report.push(name+'：'+(ranges.length ? ranges.length+' 個跨膜區段' : '沒有預測到 TM'));
  }
- return {results,report,evidence};
+ return {results,report,evidence,matchedCount};
 }
 $('tmFasta').onclick = () => {
  if (!data) { $('tmFetchStatus').textContent = '請先匯入 Clustal 比對。'; return; }
@@ -1144,4 +1152,6 @@ renderGroups();
 </script>
 <script src="figure-export.js" defer></script>
 <script src="project.js" defer></script>
+<script src="prediction-config.js" defer></script>
+<script src="prediction-client.js" defer></script>
 </body></html>
