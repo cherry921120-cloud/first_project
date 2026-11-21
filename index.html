@@ -1,0 +1,751 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>測試用_Clustal 彩色序列排版工具</title><style>
+:root{font-family:system-ui,'Microsoft JhengHei',sans-serif;color:#243047;background:#f3f6fa}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1320px;margin:auto;padding:24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}h1{font-size:25px;margin:0 0 7px}p{margin:5px 0;color:#64748b;font-size:14px}.tag{background:#e3f2ec;color:#176b50;padding:7px 12px;border-radius:20px;font-size:12px;font-weight:700}.panel{background:#fff;border:1px solid #e0e7ef;border-radius:15px;padding:18px;box-shadow:0 4px 18px #213a5710}.layout{display:grid;grid-template-columns:365px minmax(0,1fr);gap:18px}.controls{display:grid;gap:16px;align-content:start}.group{display:grid;gap:8px}.group label{font-weight:700;font-size:13px}input[type=number],select,textarea,input[type=text]{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:9px;background:white;color:#1e293b;font:inherit}textarea{font:12px/1.5 Consolas,monospace;min-height:90px;resize:vertical}.drop{border:2px dashed #9db4d0;border-radius:10px;padding:18px 10px;text-align:center;cursor:pointer;background:#f7fbff;font-size:13px}.drop:hover{background:#eaf4ff}.drop input{display:none}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>div{flex:1;min-width:90px}.check{display:flex;align-items:center;gap:8px;font-size:13px}.check input{accent-color:#2563eb}button{background:#2563eb;color:white;border:0;border-radius:8px;padding:10px 12px;font-weight:700;cursor:pointer;font-size:13px}button.secondary{background:#e9eef7;color:#263c5b}button:disabled{opacity:.5;cursor:not-allowed}.buttons{display:flex;gap:7px;flex-wrap:wrap}.hint{font-size:12px;color:#64748b;line-height:1.55}.error{color:#b42318;font-size:13px;white-space:pre-wrap}.success{color:#16734d;font-size:13px}.preview{overflow:auto;min-height:430px;background:#fff}.previewhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.previewhead h2{margin:0;font-size:17px}.alignment{display:inline-block;min-width:max-content;padding:14px;background:#fff}.aln-block{margin-bottom:18px;break-inside:avoid}.aln-line{display:flex;align-items:baseline;white-space:pre;font:var(--aln-font,13px)/1.52 Consolas,'Courier New',monospace}.aln-name{display:inline-block;flex:none;width:var(--name-width,135px);overflow:hidden;text-overflow:ellipsis;white-space:pre}.aln-seq{white-space:pre}.aln-count{color:#475569;margin-left:14px}.aln-cons{color:#1e293b;font-weight:700}.aln-marker{font-weight:bold}.aln-title{font:600 12px system-ui,sans-serif;color:#475569;margin:0 0 5px}.legend{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px;font-size:12px;color:#475569}.swatch{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px}.footer{font-size:12px;color:#64748b;margin-top:14px}.empty{color:#64748b;padding:70px 20px;text-align:center}.muted{color:#64748b}.tiny{font-size:11px}.range{font-family:Consolas,monospace;font-size:12px}.no-print{}@media(max-width:850px){.layout{grid-template-columns:1fr}.wrap{padding:12px}header{align-items:flex-start}}@media print{@page{size:landscape;margin:10mm}body{background:white}.no-print{display:none!important}.wrap{max-width:none;padding:0}.layout{display:block}.panel{border:0;box-shadow:none;padding:0}.preview{overflow:visible}.alignment{padding:0}.aln-block{break-inside:avoid}}
+
+.group-card{border:1px solid #dbe4f0;border-radius:11px;overflow:hidden;background:#fff;margin:7px 0}.group-top{display:flex;align-items:center;gap:7px;padding:10px}.group-top summary{cursor:pointer;flex:1;font-weight:650;font-size:13px;min-width:0;overflow-wrap:anywhere}.group-top input{margin:0}.group-body{padding:12px;border-top:1px solid #e5eaf1;display:grid;gap:10px}.gene-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.gene-grid label{font-size:12px;font-weight:400;overflow-wrap:anywhere}.region-card{background:#f6f8fc;border:1px solid #e5eaf1;border-radius:9px;padding:9px;display:grid;gap:7px}.region-head{display:flex;align-items:center;gap:7px}.region-head input[type=text]{min-width:0;flex:1}.region-head input[type=color]{width:34px;height:32px;border:0;background:none;padding:0;flex:none}.region-head input[type=checkbox]{flex:none}.region-head button{padding:6px 8px}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.mini-grid label{font-size:11px}.mini-grid input,.mini-grid select{padding:7px;font-size:12px}.outline{background:#eef3ff;color:#1d4ed8}.danger{background:#fee2e2;color:#991b1b}.aln-track{display:flex;align-items:center;white-space:pre;font:var(--aln-font,13px)/1.52 Consolas,'Courier New',monospace}.track-label{display:inline-block;flex:none;width:var(--name-width,135px);overflow:hidden;text-overflow:ellipsis;font:11px system-ui,sans-serif;color:#64748b;white-space:nowrap}.track-bar{height:8px;border-radius:5px;display:inline-block;vertical-align:middle}.track-cell{display:inline-block;width:1ch;height:8px;vertical-align:middle}.track-cell.on{background:var(--track-color)}.track-run{display:inline-flex;align-items:center;justify-content:center;overflow:hidden;height:var(--track-height,8px);vertical-align:middle;background:var(--track-color);border-radius:var(--track-radius,4px);cursor:help;position:relative}.track-run-label{display:block;overflow:hidden;white-space:nowrap;text-overflow:clip;font:var(--label-size,10px)/1 Consolas,monospace;color:var(--label-color,#111111);pointer-events:none}.track-space{display:inline-block;height:8px;vertical-align:middle}.group-details summary{list-style:none}.group-details summary::-webkit-details-marker{display:none}.group-details summary::after{content:'⌄';float:right;color:#64748b}.group-details[open] summary::after{content:'⌃'}.preview-note{font-size:11px;color:#64748b;margin:8px 0}.checkrow{display:flex;align-items:center;gap:6px}
+.tm-method{position:relative;display:inline-block;margin-left:4px}
+.tm-method button{border:1px solid #94a3b8;background:white;color:#243047;border-radius:50%;width:23px;height:23px;padding:0}
+.tm-help{position:absolute;left:0;top:100%;z-index:3;width:min(260px,72vw);padding:11px;background:white;border:1px solid #94a3b8;border-radius:8px;box-shadow:0 4px 14px #213a5733;visibility:hidden;font-size:12px;line-height:1.5}
+.tm-method:hover .tm-help,.tm-method:focus-within .tm-help{visibility:visible}
+.tm-help pre{overflow:auto;margin:6px 0;line-height:1.45;color:#0f4c81}
+.tm-panel{min-width:0;margin:0;padding:12px;border:1px solid #d8e2ef;border-radius:12px;background:#f7faff}
+.tm-panel legend{font-weight:750;color:#17365a;padding:0 5px}
+.tm-fold{border:1px solid #d8e2ef;border-radius:9px;background:#fff;min-width:0}
+.tm-fold summary{cursor:pointer;padding:10px 12px;color:#243e5d;font-size:13px;font-weight:700}
+.tm-fold[open]>summary{border-bottom:1px solid #e5edf6}
+.tm-fold-body{padding:10px;display:grid;gap:10px}
+.tm-style-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tm-style-grid label{display:grid;gap:4px;font-size:12px}
+.tm-style-grid input[type=color]{width:100%;height:34px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;padding:3px;cursor:pointer}
+.tm-style-grid input[type=number]{min-width:0;padding:7px;font-size:13px}
+.tm-gene-card{padding:9px;border:1px solid #e3eaf4;border-radius:8px;background:#f7faff;display:grid;gap:7px}
+.tm-gene-title{display:flex;align-items:center;justify-content:space-between;gap:8px;overflow-wrap:anywhere;font-size:13px}
+.tm-gene-title button{padding:4px 7px;font-size:11px;flex:none}
+.tm-source-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:7px}
+.tm-source-row .tm-help{left:auto;right:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.tm-panel .gene-grid label{background:white;border:1px solid #e0e9f3;padding:5px;border-radius:6px;min-width:0}
+</style></head><body><div class="wrap"><header class="no-print"><div><h1>測試用_Clustal 彩色序列排版工具</h1><p>離線使用・直接讀取 .aln・保留原始 * : .・可調整每排欄數</p></div><span class="tag">獨立測試版 · 不影響正式版</span></header><div class="layout"><aside class="controls no-print"><section class="panel group"><label>① 匯入 Clustal Omega 結果</label><label class="drop" id="drop">📄 點擊選擇 .aln / .txt 檔案，或拖曳檔案到此<input id="file" type="file" accept=".aln,.txt,.clustal_num,.clustal,.fasta,.fa,*/*"></label><div class="hint" id="filename">尚未選擇檔案</div><button id="demo" class="secondary" type="button">載入 AVP 範例並預覽 TM 色條</button><details><summary style="cursor:pointer;font-size:12px">也可以貼上 CLUSTAL 文字</summary><textarea id="paste" placeholder="CLUSTAL O(1.2.4) multiple sequence alignment ..."></textarea><button class="secondary" id="loadPaste">讀取貼上的內容</button></details><div id="status" class="hint">請使用 ClustalW / ClustalW with character counts 格式；若原檔沒有 * : .，工具不會自行捏造。</div></section><section class="panel group"><label>② 排版設定</label><div class="row"><div><label class="tiny" for="cols">每排欄數</label><input id="cols" type="number" min="10" max="300" value="60"></div><div><label class="tiny" for="font">字體大小 (px)</label><input id="font" type="number" min="8" max="26" value="13"></div></div><div><label class="tiny" for="palette">胺基酸配色</label><select id="palette"><option value="classic">分類彩色（與先前 HTML 相同）</option><option value="zappo">Zappo 類別配色</option><option value="mono">黑白</option></select></div><label class="check"><input id="showCons" type="checkbox" checked> 顯示原始 * : . conservation line</label><label class="check"><input id="showCount" type="checkbox" checked> 顯示每行末端胺基酸累計位置</label><label class="check"><input id="showStart" type="checkbox"> 顯示每行起始位置</label><label class="check"><input id="showRuler" type="checkbox"> 顯示 alignment column 刻度</label><label class="check"><input id="showGap" type="checkbox" checked> 顯示 gap（-）</label></section><section class="panel group"><div class="row" style="justify-content:space-between"><label>③ 跨膜區域／功能區段</label><button id="addGroup" type="button">＋ 新增群組</button></div><div class="hint">每組可命名、勾選顯示、選擇基因並獨立設定多個 TM／功能區段。點群組名稱即可展開或收合。</div><div class="group"><label for="cornerRadius">色條四角圓滑度：<output id="radiusValue">4 px</output></label><input type="range" id="cornerRadius" min="0" max="20" step="1" value="4" style="width:100%;accent-color:#2563eb"><div class="hint">0 為直角；數值越大越圓滑。即時套用到預覽與匯出圖。</div></div><div id="groups"></div>
+<fieldset class="group tm-panel">
+ <legend>TM 比較</legend>
+ <div><label for="tmView">顯示模式</label><span id="tmViewHelp"></span><select id="tmView">
+  <option value="off">關閉</option><option value="individual">Individual TM</option><option value="consensus">Consensus TM</option><option value="both">Individual TM + Consensus TM</option>
+ </select></div>
+ <details id="tmFetchPanel" class="tm-fold">
+  <summary>從 UniProt 或 DeepTMHMM 帶入 TM</summary>
+  <div class="tm-fold-body">
+   <label for="tmAcc">UniProt accession 對照（選填）</label>
+   <textarea id="tmAcc" placeholder="序列ID P12345"></textarea>
+   <div class="hint">序列 ID 含 UniProt accession 時可直接查詢。其他 ID 每行填「序列 ID accession」。工具只有在完整胺基酸序列相符時才會帶入註解。</div>
+   <div class="hint">例如 Homo_sapiens_OXTR、Danio_rerio_oxtra 或 OXTR|9606。可在下方修正辨識結果。物種接受學名或 Taxonomy ID。</div>
+   <div id="tmLookupInputs" class="group"></div>
+   <button type="button" id="tmFetch">自動找 UniProt accession 並查 TM</button>
+   <div id="tmLookupResults" class="group"></div>
+   <a href="https://services.healthtech.dtu.dk/services/DeepTMHMM-1.0/" target="_blank" rel="noopener">開啟 DeepTMHMM</a>
+   <button class="secondary" type="button" id="tmFasta">下載去 gap 的 FASTA</button>
+   <label for="tmDeepFile">匯入 DeepTMHMM 的 predicted_topologies.3line</label>
+   <input type="file" id="tmDeepFile" accept=".3line,.txt">
+   <div class="hint">在 DeepTMHMM 完成預測後匯入結果。工具會逐條核對序列，再自動帶入跨膜螺旋或 β 股座標。</div>
+   <div id="tmPending" class="group"></div>
+   <div id="tmFetchStatus" class="hint" role="status" style="white-space:pre-wrap"></div>
+  </div>
+ </details>
+ <div id="tmControls" class="group" style="display:none">
+  <div><label for="tmInput">各序列的 TM 座標</label><span id="tmInputHelp"></span></div>
+  <textarea id="tmInput" aria-describedby="tmFormat" placeholder="avpr1aa TM1 85 110"></textarea>
+  <div id="tmFormat" class="hint">每行輸入「序列 ID　TM 名稱　起點　終點」，用空白分隔。以無 gap 的蛋白質座標計數，從 1 開始，包含終點。同名 TM 才會一起比較。來源匯入時按各序列的區段順序編號，做 Consensus 前請確認同名區段在比對中對應。</div>
+  <div id="tmIndividualControls" class="group"><label>顯示 Individual TM 的序列</label><div id="tmIndividualGenes" class="gene-grid"></div></div>
+  <div id="tmConsensusControls" class="group">
+   <div><label for="tmRule">Consensus TM 算法</label><span id="tmHelp"></span><select id="tmRule">
+    <option value="intersection">Intersection（交集）</option><option value="union">Union（聯集）</option><option value="reference">Reference（參考序列）</option><option value="majority">Majority（過半數）</option>
+   </select></div>
+   <div id="tmReferenceWrap" hidden><label for="tmReference">參考序列</label><select id="tmReference"></select></div>
+   <div id="tmMajorityControls" class="group">
+    <label for="tmMajorityKind">Majority 門檻</label>
+    <select id="tmMajorityKind"><option value="strict">嚴格過半</option><option value="count">至少 N 條</option><option value="percent">至少百分比</option></select>
+    <input type="number" id="tmMajorityValue" aria-label="Majority 門檻數值" min="1" step="1" value="2" hidden>
+   </div>
+   <label for="tmAbsent">已確認無該 TM 的序列</label>
+   <textarea id="tmAbsent" placeholder="序列ID TM4"></textarea>
+   <div class="hint">每行填「序列 ID　TM 名稱」。缺少座標且未列在此處的序列視為未知，排除於該 TM 的有效分母。</div>
+   <label for="tmConsensusOverride">手動修正 Consensus（alignment columns）</label>
+   <textarea id="tmConsensusOverride" placeholder="TM1 72-90,93-100"></textarea>
+   <div class="hint">每行填「TM 名稱　起點-終點」。可用逗號保留分段。修正過的色條會標示為手動。</div>
+   <div id="tmMembers" class="group"><label>納入比較的序列</label><div id="tmGenes" class="gene-grid"></div></div>
+  </div>
+  <details class="tm-fold"><summary>TM 色條外觀</summary><div class="tm-fold-body">
+   <div id="tmStyleTargetWrap"><label for="tmStyleTarget">調整哪一組色條</label><select id="tmStyleTarget"><option value="individual">Individual TM</option><option value="consensus">Consensus TM</option></select></div>
+   <div class="tm-style-grid">
+    <label>色條顏色<input id="tmColor" type="color" value="#a23a51"></label>
+    <label>圓角（px）<input id="tmRadius" type="number" min="0" max="20" value="4"></label>
+    <label>文字顏色<input id="tmLabelColor" type="color" value="#111111"></label>
+    <label>文字大小（px）<input id="tmLabelSize" type="number" min="6" max="24" value="11"></label>
+   </div>
+   <label class="check"><input id="tmShowLabel" type="checkbox">在色條內顯示名稱</label>
+   <label for="tmNames">顯示名稱（選填）</label>
+   <textarea id="tmNames" placeholder="TM1 = 第一跨膜區" aria-describedby="tmNamesHint"></textarea>
+   <div class="hint" id="tmNamesHint">每行輸入「TM 名稱 = 顯示名稱」。Individual 可用「序列 ID TM 名稱 = 顯示名稱」。</div>
+   <label for="tmHidden">從圖中隱藏色條（選填）</label><textarea id="tmHidden" placeholder="TM3"></textarea>
+   <div class="hint">隱藏指定色條。每行一個 TM 名稱，Individual 可指定「序列 ID TM 名稱」。</div>
+   <details id="tmIndividualColors" class="tm-fold">
+    <summary>Individual 序列外觀覆寫（選填）</summary>
+    <div id="tmGeneStyles" class="tm-fold-body"></div>
+   </details>
+  </div></details>
+  <div class="tm-source-row">
+   <details class="tm-fold"><summary>TM 來源備註</summary><div class="tm-fold-body">
+   <label for="tmSource">座標來源</label><select id="tmSource">
+    <option value="manual">手動標註</option><option value="uniprot">UniProt</option>
+    <option value="deeptmhmm">DeepTMHMM</option><option value="mixed">混合來源</option>
+   </select>
+   <div id="tmSourceHint" class="hint"></div>
+   <div id="tmEvidenceList" class="group"></div>
+   <label for="tmNotes">備註</label>
+   <textarea id="tmNotes" placeholder="記錄 accession、isoform、預測版本或各序列的座標來源"></textarea>
+   </div></details>
+   <span class="tm-method"><button type="button" aria-label="查看 TM 來源備註" aria-describedby="tmSourceTooltip">ⓘ</button><span class="tm-help" id="tmSourceTooltip" role="tooltip"></span></span>
+  </div>
+  <div id="tmStatus" class="hint" style="white-space:pre-wrap" role="status"></div>
+ </div>
+</fieldset><div class="hint">座標可選「alignment columns」（包含 gaps）或「蛋白質胺基酸位置」（依所選基因自動轉換）。色條放在每組序列的 conservation line 下方。</div><div id="regionStatus" class="hint"></div></section><section class="panel group"><label>④ 匯出結果</label><div class="buttons"><button id="exportHtml" disabled>下載 HTML</button><button id="exportSvg" class="secondary" disabled>下載 SVG</button><button id="exportTmEvidence" class="secondary" disabled>下載 TM 證據 JSON</button><button id="print" class="secondary" disabled>列印 / PDF</button></div><div class="hint">HTML 可以離線開啟；SVG 適合放入 PowerPoint / Illustrator。</div></section></aside><main class="panel"><div class="previewhead no-print"><h2>即時預覽</h2><span id="meta" class="hint">等待匯入</span></div><div class="preview" id="preview"><div class="empty">請先在左側選擇 Clustal Omega 的比對檔案。</div></div><div class="footer no-print">原始 alignment 不會重新計算。若原始檔案不含 conservation symbols，將明確提示。Clustal 排版在瀏覽器內處理。查 UniProt 會送出 accession 或基因名與物種；完整序列在瀏覽器內核對。</div></main></div></div>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);let data=null;let groups=[];let groupSerial=0;let regionSerial=0;
+const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const paletteClassic={};for(const [aas,c] of [['AVLIM','#169a39'],['FWY','#e88900'],['STNQ','#d53a53'],['KRH','#2448d8'],['DE','#c028b0'],['GP','#a46b12'],['C','#009da8'],['-','#9ca3af']])for(const a of aas)paletteClassic[a]=c;
+const paletteZappo={};for(const [aas,c] of [['ILVAM','#ffafaf'],['FWY','#ffc800'],['KRH','#6464ff'],['DE','#e00000'],['STNQ','#00dcdc'],['G','#ff00ff'],['P','#ffcc00'],['C','#ffff00'],['-','#9ca3af']])for(const a of aas)paletteZappo[a]=c;
+function parseClustal(src){
+ const lines=src.replace(/^\uFEFF/,'').replace(/\r/g,'').split('\n');
+ if(!lines.some(l=>/^\s*(CLUSTAL|MUSCLE)\b/i.test(l)))throw Error('檔案不是 CLUSTAL 格式。請在 Clustal Omega 選 ClustalW with character counts 下載。');
+ const seqs=new Map(), blocks=[];let block=[];
+ function flush(){if(block.length)blocks.push(block);block=[]}
+ for(const line of lines){if(!line.trim())flush();else if(!/^\s*(CLUSTAL|MUSCLE)\b/i.test(line))block.push(line)}flush();
+ const pieces=[], consParts=[];let sawCons=false;let blockCount=0;
+ for(const b of blocks){
+   const parsed=[];for(const l of b){const m=l.match(/^(\S+)(\s+)([A-Za-z*?\-]+)(?:\s+\d+)?\s*$/);if(m && /^[A-Za-z*?\-]+$/.test(m[3]))parsed.push({name:m[1],segment:m[3].toUpperCase(),start:m[1].length+m[2].length});}
+   if(!parsed.length)continue;const width=parsed[0].segment.length,start=parsed[0].start;
+   if(parsed.some(x=>x.segment.length!==width||x.start!==start))throw Error('某個 CLUSTAL 區塊的序列長度或起始位置不一致，無法安全對齊。');
+   if(blockCount===0){for(const p of parsed)seqs.set(p.name,'')}else if(parsed.length!==seqs.size||parsed.some((p,i)=>p.name!==Array.from(seqs.keys())[i]))throw Error('各區塊的序列名稱或順序不一致。');
+   for(const p of parsed)seqs.set(p.name,seqs.get(p.name)+p.segment);
+   const anno=b.find(l=>/^[\s*:.]+$/.test(l)&&/[\*:.]/.test(l));
+   // CLUSTAL consensus annotation is aligned at the exact character offset of the sequence.
+   if(anno){sawCons=true;consParts.push(anno.padEnd(start+width,' ').slice(start,start+width))}else consParts.push(' '.repeat(width));
+   blockCount++;
+ }
+ if(!seqs.size)throw Error('沒有讀取到蛋白質序列。');const total=Array.from(seqs.values())[0].length;
+ if(Array.from(seqs.values()).some(s=>s.length!==total))throw Error('各序列長度不同。');
+ const cons=consParts.join('');if(cons.length!==total)throw Error('Conservation line 長度不一致。');
+ return {seqs,cons,total,sawCons,blocks:blockCount};
+}
+function settings(){return {cols:Math.max(10,Math.min(300,Number($('cols').value)||60)),font:Math.max(8,Math.min(26,Number($('font').value)||13)),palette:$('palette').value,showCons:$('showCons').checked,showCount:$('showCount').checked,showStart:$('showStart').checked,showRuler:$('showRuler').checked,showGap:$('showGap').checked,radius:Number($('cornerRadius').value)}}
+function color(c,p){return p==='mono'?'#1f2937':(p==='zappo'?paletteZappo:paletteClassic)[c]||'#253047'}
+function addGroup(){const id=++groupSerial;const selected=data?[Array.from(data.seqs.keys())[0]]:[];groups.push({id,name:selected.join('、')||'新標註群組 '+id,visible:true,expanded:true,genes:selected,showRegionLabels:false,labelColor:'#111111',labelSize:11,regions:[{id:++regionSerial,name:'TM1',start:1,end:20,color:'#e63946',visible:true,mode:'protein'}]});renderGroups();render()}
+function escAttr(x){return escapeHTML(x)}
+function renderGroups(){const names=data?Array.from(data.seqs.keys()):[];$('groups').innerHTML=groups.map(g=>`<div class="group-card" data-group="${g.id}"><div class="group-top"><input type="checkbox" data-act="group-visible" data-id="${g.id}" ${g.visible?'checked':''} title="是否在圖中顯示"><details class="group-details" data-id="${g.id}" ${g.expanded?'open':''} style="flex:1;min-width:0"><summary>${escapeHTML(g.name)}</summary></details><button class="secondary" data-act="delete-group" data-id="${g.id}" title="刪除群組">✕</button></div>${g.expanded?`<div class="group-body"><div><label>群組名稱</label><input type="text" data-act="group-name" data-id="${g.id}" value="${escAttr(g.name)}"></div><div><label>套用的基因（可複選）</label><label class="checkrow" style="margin:7px 0"><input type="checkbox" data-act="gene-all" data-id="${g.id}" ${names.length&&names.every(n=>g.genes.includes(n))?'checked':''} ${names.length?'':'disabled'}>全部包含</label><div class="gene-grid">${names.length?names.map(n=>`<label class="checkrow"><input type="checkbox" data-act="gene" data-id="${g.id}" data-gene="${escAttr(n)}" ${g.genes.includes(n)?'checked':''}>${escapeHTML(n)}</label>`).join(''):'<span class="hint">匯入 .aln 後可選擇基因</span>'}</div></div><div class="group" style="padding:9px;border:1px solid #e5eaf1;border-radius:8px"><label class="check"><input type="checkbox" data-act="group-label-visible" data-id="${g.id}" ${g.showRegionLabels?'checked':''}>在色條上顯示區段名稱（套用此群組全部區段）</label><div class="mini-grid"><div><label>文字顏色</label><input type="color" data-act="group-label-color" data-id="${g.id}" value="${g.labelColor||'#111111'}" style="width:100%;height:34px"></div><div><label>字體大小（px）</label><input type="number" min="6" max="24" data-act="group-label-size" data-id="${g.id}" value="${g.labelSize||11}"></div></div></div><div class="hint">選用蛋白質座標時，會分別以每條勾選基因的非 gap 殘基位置映射；若要標示各基因不同 TM 範圍，建議分開建立群組。</div>${g.regions.map(r=>`<div class="region-card"><div class="region-head"><input type="checkbox" data-act="region-visible" data-id="${g.id}" data-rid="${r.id}" ${r.visible?'checked':''} title="顯示此區段"><input type="text" data-act="region-name" data-id="${g.id}" data-rid="${r.id}" value="${escAttr(r.name)}" aria-label="區段名稱"><input type="color" data-act="region-color" data-id="${g.id}" data-rid="${r.id}" value="${r.color}" title="色條顏色"><button class="danger" data-act="delete-region" data-id="${g.id}" data-rid="${r.id}">刪除</button></div><div class="mini-grid"><div><label>座標類型</label><select data-act="region-mode" data-id="${g.id}" data-rid="${r.id}"><option value="protein" ${r.mode==='protein'?'selected':''}>蛋白質胺基酸位置</option><option value="alignment" ${r.mode==='alignment'?'selected':''}>Alignment column</option></select></div><div><label>區段顏色</label><input type="text" data-act="region-color-text" data-id="${g.id}" data-rid="${r.id}" value="${r.color}"></div><div><label>起點（從 1 開始）</label><input type="number" min="1" data-act="region-start" data-id="${g.id}" data-rid="${r.id}" value="${r.start}"></div><div><label>終點（含該位置）</label><input type="number" min="1" data-act="region-end" data-id="${g.id}" data-rid="${r.id}" value="${r.end}"></div></div></div>`).join('')}<button class="outline" data-act="add-region" data-id="${g.id}">＋ 新增區段</button></div>`:''}</div>`).join('');}
+$('addGroup').onclick=addGroup;
+$('groups').addEventListener('click',e=>{const summary=e.target.closest('summary');if(summary){e.preventDefault();const g=groups.find(x=>x.id===Number(summary.parentElement.dataset.id));if(g){g.expanded=!g.expanded;renderGroups()}return}const btn=e.target.closest('button[data-act]');if(!btn)return;const g=groups.find(x=>x.id===Number(btn.dataset.id));if(!g)return;const act=btn.dataset.act;if(act==='delete-group')groups=groups.filter(x=>x!==g);if(act==='add-region')g.regions.push({id:++regionSerial,name:'新區段',start:1,end:20,color:'#16a085',visible:true,mode:'protein'});if(act==='delete-region')g.regions=g.regions.filter(r=>r.id!==Number(btn.dataset.rid));renderGroups();render()});
+$('groups').addEventListener('change',e=>{const el=e.target;if(!el.dataset.act)return;const g=groups.find(x=>x.id===Number(el.dataset.id));if(!g)return;const act=el.dataset.act;const r=g.regions.find(x=>x.id===Number(el.dataset.rid));if(act==='group-visible')g.visible=el.checked;else if(act==='group-name')g.name=el.value;else if(act==='group-label-visible')g.showRegionLabels=el.checked;else if(act==='group-label-color')g.labelColor=el.value;else if(act==='group-label-size')g.labelSize=Math.max(6,Math.min(24,Number(el.value)||11));else if(act==='gene-all'){g.genes=el.checked&&data?Array.from(data.seqs.keys()):[];g.name=g.genes.join('、')||'未選擇基因'}else if(act==='gene'){if(el.checked&&!g.genes.includes(el.dataset.gene))g.genes.push(el.dataset.gene);if(!el.checked)g.genes=g.genes.filter(n=>n!==el.dataset.gene);if(data)g.genes=Array.from(data.seqs.keys()).filter(n=>g.genes.includes(n));g.name=g.genes.join('、')||'未選擇基因'}else if(r){const prop=act.replace('region-','');if(prop==='visible')r.visible=el.checked;else if(prop==='name')r.name=el.value;else if(prop==='mode')r.mode=el.value;else if(prop==='start'||prop==='end')r[prop]=Number(el.value);else if(prop==='color'||prop==='color-text'){if(/^#[0-9a-f]{6}$/i.test(el.value))r.color=el.value}}renderGroups();render()});
+function residueColumns(seq,start,end){let count=0,columns=[];for(let i=0;i<seq.length;i++){if(seq[i]!=='-'&&seq[i]!=='.'){count++;if(count>=start&&count<=end)columns.push(i+1)}}return columns}
+function getTracks(d){let tracks=[];for(const g of groups){if(!g.visible)continue;for(const r of g.regions){if(!r.visible||!Number.isInteger(r.start)||!Number.isInteger(r.end)||r.start<1||r.end<r.start)continue;const selected=g.genes.filter(n=>d.seqs.has(n));if(!selected.length)continue;const sources=r.mode==='alignment'?[selected[0]]:selected;for(const name of sources){const cols=r.mode==='alignment'?Array.from({length:Math.max(0,Math.min(d.total,r.end)-r.start+1)},(_,i)=>r.start+i):residueColumns(d.seqs.get(name),r.start,r.end);if(cols.length)tracks.push({name:r.mode==='alignment'?selected.join('、'):name,color:r.color,cols:new Set(cols),group:g.name,region:r.name,showLabel:!!g.showRegionLabels,labelColor:g.labelColor||'#111111',labelSize:g.labelSize||11})}}}return tracks}
+const tmDescriptions = {
+ individual: ['每條序列各自將 TM 座標映射到比對欄，色條畫在該序列下方。','比對欄  1234567\n序列 A  MLV-IFG\nTM 2–5   ██ ██'],
+ intersection: ['同名 TM 在所有納入序列都覆蓋的欄才保留。gap 算未覆蓋。未知序列不納入有效分母。','序列 A   ██ ██ \n序列 B    ████ \n交集      █ ██ '],
+ union: ['同名 TM 只要有一條納入序列覆蓋該欄就保留。已確認無 TM 的序列不貢獻色條。','序列 A   ██ ██ \n序列 B    ████ \n聯集     █████ '],
+ reference: ['只採用所選參考序列的同名 TM，將其蛋白質座標映射到比對欄。其他序列不參與運算。參考序列換了，邊界可能跟著改變。','參考 A  ██ ██ \n序列 B   ████ \n結果    ██ ██ '],
+ majority: ['每欄計算同名 TM 的覆蓋數，須嚴格超過已勾選序列數的一半。平手與 gap 均不算支持。可改用指定條數或百分比；未知序列不納入有效分母。','序列 A  ██ ██ \n序列 B   ████ \n序列 C  █   ██\n結果    ██ ██ '],
+ source: ['在 UniProt 的 Transmembrane 註解查找對應蛋白的區段，確認與比對使用同一蛋白序列及 isoform。將起訖輸入此欄。若使用 DeepTMHMM，請把座標視為預測結果。','資料來源 → TM 起訖\n蛋白質座標 → 比對欄']
+};
+function tmHelp(method, id) {
+ const [description, diagram] = tmDescriptions[method];
+ return `<span class="tm-method"><button type="button" aria-label="方法說明" aria-describedby="${id}">？</button><span class="tm-help" id="${id}" role="tooltip">${description}<pre>${diagram}</pre></span></span>`;
+}
+$('tmInputHelp').innerHTML = tmHelp('source', 'tmSourceTip');
+$('tmViewHelp').innerHTML = tmHelp('individual', 'tmViewTip');
+const tmAppearanceControls = ['tmColor','tmRadius','tmLabelColor','tmLabelSize','tmShowLabel','tmNames','tmHidden'];
+const tmAppearance = {
+ individual: {},
+ consensus: {tmColor:'#196d79'}
+};
+const tmGeneAppearance = new Map();
+const tmSourceHints = {
+ manual:'記錄座標是依哪筆資料、圖譜或已知蛋白質區段手動輸入的。',
+ uniprot:'查看 UniProt 條目中的 Transmembrane feature，記錄 accession、isoform 與證據類型。',
+ deeptmhmm:'在 DeepTMHMM 的預測拓撲中找出跨膜區段，並記錄工具版本和所用蛋白質序列。',
+ mixed:'在備註中逐條記錄序列或 TM 的來源，例如 UniProt accession 或 DeepTMHMM 版本。'
+};
+function updateTmSource() {
+ const source = $('tmSource');
+ $('tmSourceHint').textContent = tmSourceHints[source.value];
+ $('tmSourceTooltip').textContent = [source.selectedOptions[0]?.textContent, $('tmNotes').value.trim()].filter(Boolean).join('\n');
+
+}
+function updateTmControls() {
+ const mode = $('tmView').value;
+ const rule = $('tmRule').value;
+ $('tmControls').style.display = mode === 'off' ? 'none' : 'grid';
+ $('tmIndividualControls').style.display = mode === 'individual' || mode === 'both' ? 'grid' : 'none';
+ $('tmConsensusControls').style.display = mode === 'consensus' || mode === 'both' ? 'grid' : 'none';
+ $('tmReferenceWrap').hidden = rule !== 'reference';
+ $('tmMembers').style.display = rule === 'reference' ? 'none' : 'grid';
+ $('tmMajorityControls').style.display = rule === 'majority' ? 'grid' : 'none';
+ $('tmMajorityValue').hidden = $('tmMajorityKind').value === 'strict';
+ $('tmMajorityValue').max = $('tmMajorityKind').value === 'percent' ? '100' : '';
+ $('tmViewHelp').innerHTML = tmHelp(mode === 'consensus' ? rule : 'individual', 'tmViewTip');
+ $('tmHelp').innerHTML = tmHelp(rule, 'tmMethodTip');
+ $('tmStyleTargetWrap').hidden = mode !== 'both';
+ if (mode !== 'off' && mode !== 'both') $('tmStyleTarget').value = mode;
+ $('tmIndividualColors').hidden = $('tmStyleTarget').value !== 'individual';
+ if (mode !== 'off') {
+  const style = tmAppearance[$('tmStyleTarget').value];
+  for (const id of tmAppearanceControls) {
+   const input = $(id);
+   if (input.type === 'checkbox') input.checked = style[id] ?? input.defaultChecked;
+   else input.value = style[id] ?? input.defaultValue;
+  }
+ }
+ renderTmGeneStyles();
+ render();
+}
+function resetTmGenes(d) {
+ const names = [...d.seqs.keys()];
+ const choices = names.map(name =>
+  `<label class="checkrow"><input type="checkbox" checked value="${escapeHTML(name)}">${escapeHTML(name)}</label>`
+ ).join('');
+ $('tmGenes').innerHTML = choices;
+ $('tmIndividualGenes').innerHTML = choices;
+ $('tmReference').innerHTML = names.map(name => `<option>${escapeHTML(name)}</option>`).join('');
+ renderTmGeneStyles();
+
+}
+function tmStyle(mode) {
+ const style = tmAppearance[mode];
+ const value = id => style[id] ?? $(id).defaultValue;
+ const aliases = new Map();
+ const hidden = new Set(value('tmHidden').split(/\r?\n/).map(line=>line.trim()).filter(Boolean));
+ for (const line of value('tmNames').split(/\r?\n/)) {
+  const delimiter = line.indexOf('=');
+  if (delimiter < 0) continue;
+  const label = line.slice(delimiter + 1).trim();
+  if (label) aliases.set(line.slice(0, delimiter).trim(), label);
+ }
+ return {
+  aliases, hidden, color:value('tmColor'),
+  radius:Math.max(0, Math.min(20, Number(value('tmRadius')) || 0)),
+  showLabel:style.tmShowLabel ?? $('tmShowLabel').defaultChecked,
+  labelColor:value('tmLabelColor'),
+  labelSize:Math.max(6, Math.min(24, Number(value('tmLabelSize')) || 11))
+ };
+}
+const tmGeneFields = [
+ ['color','色條顏色','color'], ['radius','圓角（px）','number',0,20],
+ ['labelColor','文字顏色','color'], ['labelSize','文字大小（px）','number',6,24]
+];
+function renderTmGeneStyles() {
+ const base = tmStyle('individual');
+ const selected = [...$('tmIndividualGenes').querySelectorAll('input:checked')];
+ $('tmGeneStyles').innerHTML = selected.map(input => {
+  const name = input.value;
+  const overrides = tmGeneAppearance.get(name) || {};
+  const fields = tmGeneFields.map(([key,label,type,min,max]) =>
+   `<label>${label}<input data-tm-style="${key}" type="${type}" value="${overrides[key] ?? base[key]}" ${type === 'number' ? `min="${min}" max="${max}" step="1"` : ''}></label>`
+  ).join('');
+  return `<div class="tm-gene-card" data-sequence="${escapeHTML(name)}"><div class="tm-gene-title"><strong>${escapeHTML(name)}</strong><button type="button" class="secondary" data-tm-reset ${tmGeneAppearance.has(name)?'':'disabled'}>使用預設</button></div><div class="tm-style-grid">${fields}</div></div>`;
+ }).join('') || '<div class="hint">勾選要顯示 Individual TM 的序列，即可調整外觀。</div>';
+}
+$('tmGeneStyles').addEventListener('input', event => {
+ const input = event.target;
+ const key = input.dataset.tmStyle;
+ if (!key || !input.value || !input.validity.valid) return;
+ const card = input.closest('[data-sequence]');
+ const name = card.dataset.sequence;
+ const overrides = tmGeneAppearance.get(name) || {};
+ overrides[key] = input.type === 'number' ? input.valueAsNumber : input.value;
+ tmGeneAppearance.set(name, overrides);
+ card.querySelector('[data-tm-reset]').disabled = false;
+ render();
+});
+$('tmGeneStyles').addEventListener('click', event => {
+ const button = event.target.closest('[data-tm-reset]');
+ if (!button) return;
+ tmGeneAppearance.delete(button.closest('[data-sequence]').dataset.sequence);
+ renderTmGeneStyles();
+ render();
+});
+function tmTracks(d) {
+ const mode = $('tmView').value;
+ if (mode === 'off') return [];
+ const status = $('tmStatus');
+ const individual = mode === 'individual' || mode === 'both';
+ const consensus = mode === 'consensus' || mode === 'both';
+ const displayed = individual ? new Set(Array.from($('tmIndividualGenes').querySelectorAll('input:checked'), input=>input.value)) : new Set();
+ const rule = $('tmRule').value;
+ const reference = $('tmReference').value;
+ const selected = rule === 'reference'
+  ? (d.seqs.has(reference) ? [reference] : [])
+  : Array.from($('tmGenes').querySelectorAll('input:checked'), input => input.value);
+ function invalid(message) {
+  status.textContent = message;
+  return [];
+ }
+ const byRegion = new Map();
+ const lines = $('tmInput').value.split(/\r?\n/);
+ for (const [index, line] of lines.entries()) {
+  if (!line.trim()) continue;
+  const fields = line.trim().split(/\s+/);
+  const [name, region, startText, endText] = fields;
+  const sequence = d.seqs.get(name);
+  const start = Number(startText);
+  const end = Number(endText);
+  if (fields.length !== 4 || !sequence || !/^\d+$/.test(startText) || !/^\d+$/.test(endText)
+   || start < 1 || end < start || end > sequence.replace(/[-.]/g, '').length) {
+   return invalid(`第 ${index + 1} 行的序列 ID、欄位數或座標有誤。`);
+  }
+  if (!byRegion.has(region)) byRegion.set(region, new Map());
+  const members = byRegion.get(region);
+  if (members.has(name)) return invalid(`第 ${index + 1} 行重複輸入 ${name} 的 ${region}。`);
+  members.set(name, residueColumns(sequence, start, end));
+ }
+ const tracks = [], messages = [];
+ const individualStyle = tmStyle('individual'), consensusStyle = tmStyle('consensus');
+ if (individual) {
+  for (const [region, members] of byRegion) {
+   for (const [name, cols] of members) {
+    if (!displayed.has(name) || individualStyle.hidden.has(region) || individualStyle.hidden.has(name+' '+region)) continue;
+    const label = individualStyle.aliases.get(name+' '+region) || individualStyle.aliases.get(region) || region;
+    tracks.push({...individualStyle, ...tmGeneAppearance.get(name), name, region:label, label:name+' · '+label, group:'Individual TM', cols:new Set(cols)});
+   }
+  }
+ }
+ if (consensus && !selected.length) messages.push(rule === 'reference' ? '請選擇參考序列。' : '請勾選參與 Consensus 的序列。');
+ if (consensus && selected.length) {
+  const absent = new Map();
+  for (const line of $('tmAbsent').value.split(/\r?\n/).filter(l=>l.trim())) {
+   const [name, region, extra] = line.trim().split(/\s+/);
+   if (extra || !region || !d.seqs.has(name) || byRegion.get(region)?.has(name)) {
+    messages.push('無 TM 標記格式有誤或與座標衝突：'+line);
+    continue;
+   }
+   if (!absent.has(region)) absent.set(region,new Set());
+   absent.get(region).add(name);
+  }
+  const overrides = new Map();
+  for (const line of $('tmConsensusOverride').value.split(/\r?\n/).filter(l=>l.trim())) {
+   const [region, ranges] = line.trim().split(/\s+/,2);
+   if (!/^\S+\s+\d+-\d+(,\d+-\d+)*$/.test(line.trim()) || overrides.has(region)) {
+    messages.push('修正格式有誤或區段重複：'+line);
+    continue;
+   }
+   const bounds = ranges.split(',').map(range=>range.split('-').map(Number));
+   if (bounds.some(([a,b])=>a<1 || b<a || b>d.total)) {
+    messages.push('修正欄位超出比對範圍：'+line);
+    continue;
+   }
+   overrides.set(region,new Set(bounds.flatMap(([a,b])=>Array.from({length:b-a+1},(_,i)=>a+i))));
+  }
+  const kind = $('tmMajorityKind').value;
+  const threshold = Number($('tmMajorityValue').value);
+  const title = rule === 'reference' ? 'Reference TM' : 'Consensus TM · '+rule;
+  for (const region of new Set([...byRegion.keys(),...absent.keys(),...overrides.keys()])) {
+   const members = byRegion.get(region) || new Map();
+   const sources = selected.filter(name=>members.has(name));
+   const negatives = selected.filter(name=>absent.get(region)?.has(name));
+   const effective = sources.length + negatives.length;
+   const unknown = selected.filter(name=>!members.has(name) && !absent.get(region)?.has(name));
+   const label = consensusStyle.aliases.get(region) || region;
+   const minimum = rule === 'intersection' ? effective
+    : rule !== 'majority' ? 1
+    : kind === 'count' ? threshold
+    : kind === 'percent' ? Math.ceil(threshold*effective/100) : Math.floor(effective/2)+1;
+   const manual = overrides.get(region);
+   const summary = rule === 'reference' ? '參考 '+reference : '有效 '+effective+'/'+selected.length+'，至少 '+minimum+'/'+effective;
+   const unknownText = unknown.length ? '，未知：'+unknown.join('、') : '';
+   if (manual) {
+    if (!consensusStyle.hidden.has(region)) tracks.push({...consensusStyle, name:sources.join('、'), region:label, label:title+' · '+label+'（手動）', group:title+' · 手動座標', cols:manual});
+    messages.push(region+'：手動座標；'+summary+unknownText);
+    continue;
+   }
+   const invalidThreshold = rule === 'majority' && kind !== 'strict'
+    && (!Number.isInteger(threshold) || threshold<1 || (kind === 'percent' && threshold>100));
+   const insufficient = !effective || ((rule === 'intersection' || rule === 'majority') && selected.length>1 && effective<2);
+   if (invalidThreshold || insufficient || minimum>effective) {
+    messages.push(region+'：'+(invalidThreshold ? '門檻無效' : '有效序列不足')+'；'+summary+unknownText);
+    continue;
+   }
+   const votes = new Map();
+   for (const name of sources) {
+    for (const column of members.get(name)) votes.set(column,(votes.get(column)||0)+1);
+   }
+   const cols = new Set([...votes].filter(([,count])=>count>=minimum).map(([column])=>column));
+   if (cols.size && !consensusStyle.hidden.has(region)) tracks.push({...consensusStyle, name:sources.join('、'), region:label, label:title+' · '+label, group:title, cols});
+   messages.push(region+'：'+summary+unknownText+(cols.size?'':'；沒有符合的欄位'));
+  }
+ }
+ status.textContent = messages.join('\n') || (byRegion.size ? '' : '請輸入各序列的 TM 座標。');
+ return tracks;
+}
+$('tmView').addEventListener('change', updateTmControls);
+$('tmRule').addEventListener('change', updateTmControls);
+$('tmInput').addEventListener('input', () => {renderTmEvidence();render()});
+$('tmReference').addEventListener('change', render);
+$('tmSource').addEventListener('change', updateTmSource);
+$('tmNotes').addEventListener('input', updateTmSource);
+for (const id of tmAppearanceControls) {
+ $(id).addEventListener('input', () => {
+  const input = $(id);
+  tmAppearance[$('tmStyleTarget').value][id] = input.type === 'checkbox' ? input.checked : input.value;
+  renderTmGeneStyles();
+  render();
+ });
+}
+updateTmSource();
+$('tmGenes').addEventListener('change', render);
+$('tmIndividualGenes').addEventListener('change', () => {
+ renderTmGeneStyles();
+ render();
+});
+for (const id of ['tmMajorityKind','tmStyleTarget']) $(id).addEventListener('change', updateTmControls);
+for (const id of ['tmMajorityValue','tmAbsent','tmConsensusOverride']) $(id).addEventListener('input', render);
+const accessionPattern = /^(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})$/;
+const ungapped = sequence => sequence.replace(/[-.]/g, '');
+function sourceLines(name, ranges) {
+ return ranges.map(([start, end], i) => [name, 'TM'+(i+1), start, end].join(' '));
+}
+function uniprotRanges(entry, sequence, capture = () => {}) {
+ if (entry.sequence?.value !== ungapped(sequence)) throw Error('完整序列與 UniProt 條目不同');
+ return (entry.features || []).filter(f => f.type === 'Transmembrane')
+  .filter(({location:l}) => l?.start?.modifier === 'EXACT' && l?.end?.modifier === 'EXACT'
+   && Number.isInteger(l.start.value) && Number.isInteger(l.end.value)
+   && l.start.value >= 1 && l.end.value >= l.start.value && l.end.value <= entry.sequence.value.length)
+  .sort((a,b) => a.location.start.value-b.location.start.value)
+  .map((feature,index) => {
+   capture(index,feature);
+   return [feature.location.start.value, feature.location.end.value];
+  });
+}
+const tmEvidence = new Map();
+function evidenceReport() {
+ const current = new Map();
+ for (const line of $('tmInput').value.split(/\r?\n/).filter(line=>line.trim())) {
+  const [sequenceId, tm, start, end] = line.trim().split(/\s+/);
+  const key = sequenceId+' '+tm;
+  current.set(key, current.has(key) ? null : [Number(start),Number(end)]);
+ }
+ const records = [...tmEvidence].map(([key,evidence]) => {
+  const coordinates = current.get(key);
+  const original = evidence.originalResidues;
+  const status = !coordinates ? (current.has(key) ? 'ambiguous' : 'removed')
+   : coordinates[0] === original[0] && coordinates[1] === original[1] ? 'as_imported' : 'manually_changed';
+  return {...evidence, currentResidues:coordinates ?? null, status};
+ });
+ return {schemaVersion:1, alignment:$('filename').textContent, records};
+}
+function renderTmEvidence() {
+ const {records} = evidenceReport();
+ $('exportTmEvidence').disabled = !records.length;
+ $('tmEvidenceList').innerHTML = records.map(row => {
+  const coordinates = row.originalResidues.join('–');
+  const codes = (row.feature?.evidences || []).map(e=>[e.evidenceCode,e.source,e.id].filter(Boolean).join(' '));
+  const status = {as_imported:'座標與來源相同',manually_changed:'座標已手動修改',removed:'已移除',ambiguous:'座標重複'}[row.status];
+  const description = [row.source, row.accession || row.fileName, '原始座標 '+coordinates,
+   'Alignment columns '+row.originalAlignmentColumns.join(', '), status,
+   row.currentResidues ? '目前座標 '+row.currentResidues.join('–') : '',
+   row.feature ? (codes.join('；') || '此 feature 未附證據代碼') : row.topologySegment].filter(Boolean).join('\n');
+  const link = row.accession ? ` <a href="https://www.uniprot.org/uniprotkb/${encodeURIComponent(row.accession)}/entry" target="_blank" rel="noopener">${escapeHTML(row.accession)}</a>` : '';
+  return `<div class="hint">${escapeHTML(row.sequenceId+' · '+row.tm)}${link}<span class="tm-method"><button type="button" aria-label="查看來源證據">ⓘ</button><span class="tm-help" role="tooltip" style="white-space:pre-wrap">${escapeHTML(description)}</span></span></div>`;
+ }).join('');
+}
+function evidenceMarkup(tag) {
+ const report = evidenceReport();
+ if (!report.records.length) return '';
+ return `<${tag} id="tm-source-evidence">${escapeHTML(JSON.stringify(report))}</${tag}>`;
+}
+$('exportTmEvidence').onclick = () => saveBlob(JSON.stringify(evidenceReport(),null,2)+'\n','application/json;charset=utf-8','protein_alignment_tm_evidence.json');
+let pendingTm = null;
+function resetPendingTm() {
+ pendingTm = null;
+ $('tmPending').innerHTML = '';
+}
+function previewSourceRows(results, source, evidence = new Map()) {
+ resetPendingTm();
+ if (!results.size) return;
+ pendingTm = {results, source, evidence, dataset:data};
+ const origin = source === 'uniprot' ? 'UniProt' : 'DeepTMHMM';
+ const rows = [...results].map(([name,ranges], index) => {
+  const intervals = ranges.map(([start,end],i)=>{
+   const tm = 'TM'+(i+1);
+   const proof = evidence.get(name+' '+tm);
+   const codes = proof?.feature?.evidences?.map(item=>item.evidenceCode).filter(Boolean).join('、');
+   return escapeHTML(tm+' '+start+'–'+end+(proof?.feature ? ' · '+(codes || '無證據代碼') : ''));
+  }).join('<br>');
+  return `<tr><th scope="row">${escapeHTML(name)}</th><td>${intervals}</td><td>${origin}</td><td><label><input type="checkbox" value="${index}" checked>待確認</label></td></tr>`;
+ }).join('');
+ $('tmPending').innerHTML = `<table class="hint"><thead><tr><th>序列</th><th>區段</th><th>來源</th><th>狀態</th></tr></thead><tbody>${rows}</tbody></table><button type="button" data-confirm-tm>新增勾選的區段</button><div class="hint">已有同名 TM 的區段會保留。</div>`;
+}
+$('tmPending').addEventListener('click', event => {
+ if (!event.target.closest('[data-confirm-tm]') || !pendingTm || pendingTm.dataset !== data) return;
+ const {results,source,evidence} = pendingTm;
+ const entries = [...results];
+ const chosen = new Map([...$('tmPending').querySelectorAll('input:checked')].map(input=>entries[Number(input.value)]));
+ const count = applySourceRows(chosen, source, evidence);
+ resetPendingTm();
+ $('tmFetchStatus').textContent += '\n已新增 '+count+' 個區段。';
+});
+function applySourceRows(results, source, evidence = new Map()) {
+ const previous = $('tmInput').value.trim().split(/\r?\n/).filter(line=>line.trim());
+ const keys = new Set(previous.map(line=>line.trim().split(/\s+/).slice(0,2).join(' ')));
+ const additional = [...results].flatMap(([name,ranges])=>sourceLines(name,ranges))
+  .filter(line=>!keys.has(line.split(' ').slice(0,2).join(' ')));
+ if (!additional.length) return 0;
+ $('tmInput').value = [...previous,...additional].join('\n');
+ for (const line of additional) {
+  const [sequenceId,tm,start,end] = line.split(' ');
+  const key = sequenceId+' '+tm;
+  const origin = evidence.get(key);
+  if (origin) tmEvidence.set(key,{
+   ...origin, sequenceId, tm, originalResidues:[Number(start),Number(end)],
+   originalAlignmentColumns:residueColumns(data.seqs.get(sequenceId),Number(start),Number(end)),
+   sequenceMatched:true
+  });
+  else tmEvidence.delete(key);
+ }
+ renderTmEvidence();
+ $('tmSource').value = previous.length && $('tmSource').value !== source ? 'mixed' : source;
+ updateTmSource();
+ if ($('tmView').value === 'off') $('tmView').value = 'individual';
+ updateTmControls();
+ return additional.length;
+}
+const speciesAliases = new Map([
+ ['homo_sapiens',9606],['human',9606],['danio_rerio',7955],['zebrafish',7955],
+ ['mus_musculus',10090],['mouse',10090],['rattus_norvegicus',10116],['rat',10116]
+]);
+function lookupHints(name) {
+ const explicit = name.split('|');
+ const taggedGene = explicit.find(part=>/^gene=/i.test(part))?.slice(5);
+ const taggedSpecies = explicit.find(part=>/^(species|taxid)=/i.test(part))?.split('=')[1]?.replace(/_/g,' ');
+ if (taggedGene || taggedSpecies) return {gene:taggedGene || explicit[0],species:taggedSpecies || ''};
+ // A species-first CLUSTAL ID uses underscores in place of spaces.
+ if (!/[|:]/.test(name)) {
+  const split = name.lastIndexOf('_');
+  const prefix = name.slice(0,split);
+  const symbol = name.slice(split+1);
+  if (split > 0 && /^[A-Za-z0-9.-]+$/.test(symbol)
+   && (speciesAliases.has(prefix.toLowerCase()) || /^[A-Z][a-z]+(?:_[a-z][a-z.-]*)+$/.test(prefix))) {
+   return {gene:symbol,species:prefix.replace(/_/g,' ')};
+  }
+ }
+ const parts = name.split(/[|:]/).filter(Boolean);
+ let gene = parts.length === 1 ? name : parts.find(part => !accessionPattern.test(part) && !speciesAliases.has(part.toLowerCase()) && !/^\d+$/.test(part)) || '';
+ let species = parts.find(part => speciesAliases.has(part.toLowerCase()) || /^\d+$/.test(part)) || '';
+ if (!species && explicit.length === 2 && /^[A-Z][a-z]+_[a-z][a-z_-]+$/.test(explicit[1])) species = explicit[1].replace(/_/g,' ');
+ for (const [suffix,taxonomy] of speciesAliases) {
+  const lower = name.toLowerCase();
+  if (species || !['_','-'].some(separator => lower.endsWith(separator+suffix))) continue;
+  gene = name.slice(0,-suffix.length-1);
+  species = String(taxonomy);
+ }
+ return {gene:accessionPattern.test(gene) ? '' : gene, species};
+}
+function resetLookupInputs(dataset) {
+ $('tmLookupResults').innerHTML = '';
+ $('tmLookupInputs').innerHTML = [...dataset.seqs.keys()].map(name => {
+  const {gene,species} = lookupHints(name);
+  return `<div class="tm-gene-card" data-lookup="${escapeHTML(name)}"><strong>${escapeHTML(name)}</strong><div class="mini-grid"><label>基因<input type="text" data-gene value="${escapeHTML(gene)}"></label><label>物種<input type="text" data-species value="${escapeHTML(species)}"></label></div></div>`;
+ }).join('');
+}
+function speciesQuery(value) {
+ const species = value.trim();
+ const taxonomy = speciesAliases.get(species.toLowerCase().replace(/ /g,'_'));
+ if (!species) return '';
+ if (taxonomy || /^\d+$/.test(species)) return ' AND organism_id:'+(taxonomy || species);
+ if (!/^[A-Za-z][A-Za-z .'-]*$/.test(species)) throw Error('物種請填學名或 Taxonomy ID');
+ return ' AND organism_name:"'+species+'"';
+}
+async function readUniProt(url) {
+ const response = await fetch(url,{signal:AbortSignal.timeout(12000)});
+ if (!response.ok) throw Error('UniProt 回應 '+response.status);
+ return {payload:await response.json(), release:response.headers.get('x-uniprot-release'),
+  link:response.headers.get('link'), total:Number(response.headers.get('x-total-results')) || 0};
+}
+async function findUniProtCandidates(gene,species,sequence) {
+ if (!/^[A-Za-z0-9_.-]+$/.test(gene)) throw Error('請填基因名或指定 accession');
+ const query = 'gene_exact:"'+gene+'"'+speciesQuery(species);
+ let endpoint = 'https://rest.uniprot.org/uniprotkb/search?'+new URLSearchParams({query,format:'json',size:'50'});
+ const exact = [], candidates = [];
+ let scanned = 0;
+ do {
+  const page = await readUniProt(endpoint);
+  for (const entry of page.payload.results || []) {
+   scanned++;
+   if (candidates.length < 12) candidates.push(entry);
+   if (entry.sequence?.value === ungapped(sequence)) exact.push(entry);
+  }
+  const next = page.link?.match(/<(https:\/\/rest\.uniprot\.org\/uniprotkb\/search\?[^>]+)>;\s*rel="next"/)?.[1];
+  if (!next && page.total > scanned) throw Error('無法讀取全部候選，請補物種或 accession');
+  endpoint = next;
+ } while (endpoint && scanned < 250);
+ if (endpoint) throw Error('候選超過 250 筆，請補物種或 accession');
+ return {exact,candidates};
+}
+function showLookupResults(rows) {
+ const links = entries => entries.map(entry => {
+  const id = entry.primaryAccession;
+  if (!accessionPattern.test(id || '')) return '';
+  const organism = entry.organism?.scientificName || '物種未提供';
+  const length = entry.sequence?.length || entry.sequence?.value?.length;
+  return `<div><a href="https://www.uniprot.org/uniprotkb/${id}/entry" target="_blank" rel="noopener">${id}</a> · ${escapeHTML(organism)}${length ? ' · '+Number(length)+' aa' : ''}</div>`;
+ }).join('');
+ $('tmLookupResults').innerHTML = rows.map(row=>`<div class="tm-gene-card hint"><strong>${escapeHTML(row.name)}</strong><div>${escapeHTML(row.message)}</div>${links(row.entries || [])}</div>`).join('');
+}
+$('tmFetch').onclick = async () => {
+ const status = $('tmFetchStatus');
+ const dataset = data;
+ if (!dataset) { status.textContent = '請先匯入 Clustal 比對。'; return; }
+ const manual = new Map();
+ for (const line of $('tmAcc').value.split(/\r?\n/).filter(l => l.trim())) {
+  const [name, accession, extra] = line.trim().split(/\s+/);
+  if (extra || !dataset.seqs.has(name) || !accessionPattern.test(accession || '') || manual.has(name)) {
+   status.textContent = '請檢查 accession 對照：'+line;
+   return;
+  }
+  manual.set(name, accession);
+ }
+ const results = new Map(), evidence = new Map(), lookupRows = [];
+ const lookupInputs = new Map([...$('tmLookupInputs').querySelectorAll('[data-lookup]')].map(card =>
+  [card.dataset.lookup,{gene:card.querySelector('[data-gene]').value.trim(),species:card.querySelector('[data-species]').value.trim()}]));
+ resetPendingTm();
+ showLookupResults([]);
+ $('tmFetch').disabled = true;
+ $('tmDeepFile').disabled = true;
+ try {
+  for (const [name, sequence] of dataset.seqs) {
+   if (data !== dataset) return;
+   let accession = manual.get(name) || name.split(/[|:]/).find(part => accessionPattern.test(part));
+   status.textContent = '正在查詢 '+name+'…';
+   try {
+    if (!accession) {
+     const {gene,species} = lookupInputs.get(name) || lookupHints(name);
+     const {exact,candidates} = await findUniProtCandidates(gene,species,sequence);
+     if (exact.length !== 1) {
+      lookupRows.push({name,entries:exact.length ? exact : candidates,message:exact.length
+       ? '有多筆完整相符的條目。請選一筆 accession 填入對照欄，再查一次。'
+       : '沒有完整相符的 accession。可核對候選、指定 accession，或用下方 FASTA 跑 DeepTMHMM。'});
+      continue;
+     }
+     accession = exact[0].primaryAccession;
+    }
+    const endpoint = 'https://rest.uniprot.org/uniprotkb/'+encodeURIComponent(accession)+'.json';
+    const {payload:entry,release} = await readUniProt(endpoint);
+    const retrievedAt = new Date().toISOString();
+    const ranges = uniprotRanges(entry,sequence,(index,feature) => evidence.set(name+' TM'+(index+1),{
+     source:'UniProt', accession:entry.primaryAccession || accession, queriedAccession:accession,
+     endpoint, retrievedAt, release, feature
+    }));
+    if (ranges.length) results.set(name, ranges);
+    lookupRows.push({name,entries:[entry],message:ranges.length
+     ? '完整序列相符，'+ranges.length+' 個 TM 待確認。'
+     : '完整序列相符，沒有具精確座標的 TM 註解。可用下方 FASTA 跑 DeepTMHMM。'});
+   } catch (error) { lookupRows.push({name,message:(accession ? accession+' · ' : '')+error.message}); }
+  }
+  if (data === dataset) {
+   previewSourceRows(results,'uniprot',evidence);
+   showLookupResults(lookupRows);
+   status.textContent = lookupRows.length+' 條序列已查詢。';
+  }
+ } finally {
+  $('tmFetch').disabled = false;
+  $('tmDeepFile').disabled = false;
+ }
+};
+function deepTmRows(raw, dataset, fileName) {
+ const lines = raw.trim().split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+ const results = new Map(), evidence = new Map(), report = [], seen = new Set();
+ if (!lines.length || lines.length % 3) throw Error('請選擇 DeepTMHMM 的 predicted_topologies.3line。');
+ for (let i=0; i<lines.length; i+=3) {
+  const [header, sequence, topology] = lines.slice(i,i+3);
+  if (!header.startsWith('>') || topology.length !== sequence.length || !/^[MBSIOP]+$/.test(topology)) {
+   throw Error('第 '+(i+1)+' 行起的三行格式有誤。');
+  }
+  const name = header.slice(1).split(/\s+/)[0];
+  if (seen.has(name)) throw Error('重複的序列 ID：'+name);
+  seen.add(name);
+  if (!dataset.seqs.has(name) || ungapped(dataset.seqs.get(name)) !== sequence) {
+   report.push(name+'：序列 ID 或完整序列不符');
+   continue;
+  }
+  const ranges = [...topology.matchAll(/M+|B+/g)].map((m,index) => {
+   evidence.set(name+' TM'+(index+1),{
+    source:'DeepTMHMM', kind:'imported_prediction', fileName, header, topology,
+    topologySegment:m[0], importedAt:new Date().toISOString()
+   });
+   return [m.index+1,m.index+m[0].length];
+  });
+  if (ranges.length) results.set(name,ranges);
+  report.push(name+'：'+(ranges.length ? ranges.length+' 個跨膜區段' : '沒有預測到 TM'));
+ }
+ return {results,report,evidence};
+}
+$('tmFasta').onclick = () => {
+ if (!data) { $('tmFetchStatus').textContent = '請先匯入 Clustal 比對。'; return; }
+ const fasta = [...data.seqs].map(([name, sequence])=>'>'+name+'\n'+ungapped(sequence)).join('\n');
+ saveBlob(fasta+'\n','text/plain;charset=utf-8','clustal_ungapped.fasta');
+};
+$('tmDeepFile').onchange = async event => {
+ const file = event.target.files[0];
+ event.target.value = '';
+ if (!file) return;
+ const dataset = data;
+ const status = $('tmFetchStatus');
+ if (!dataset) { status.textContent = '請先匯入 Clustal 比對。'; return; }
+ try {
+  const raw = await file.text();
+  if (data !== dataset) return;
+  const {results,report,evidence} = deepTmRows(raw,dataset,file.name);
+  previewSourceRows(results,'deeptmhmm',evidence);
+  status.textContent = report.join('\n');
+ } catch (error) { status.textContent = error.message; }
+};
+function allTracks(d) {
+ return [...getTracks(d), ...tmTracks(d)];
+}
+function buildAlignment(d,s,tracks){const names=Array.from(d.seqs.keys()),nameWidth=Math.max(115,Math.min(270,Math.max(...names.map(n=>n.length))*s.font*.64+15)),nDigits=String(d.total).length;
+ let html=`<div class="alignment" style="--aln-font:${s.font}px;--name-width:${nameWidth}px">`;
+ const counts=Object.fromEntries(names.map(n=>[n,0]));
+ for(let begin=0;begin<d.total;begin+=s.cols){const end=Math.min(d.total,begin+s.cols),len=end-begin;html+='<section class="aln-block">';
+ if(s.showRuler){const ruler=Array.from({length:len},(_,i)=>(begin+i+1)%10===0?'|':(begin+i+1)%5===0?'.':' ').join('');html+=`<div class="aln-line"><span class="aln-name"></span>${s.showStart?`<span style="display:inline-block;width:calc(${nDigits}ch + 10px)"></span>`: ''}<span class="aln-seq muted">${ruler}</span></div>`}
+ function drawTracks(selectedTracks){ for(const t of selectedTracks){const hits=Array.from({length:len},(_,i)=>t.cols.has(begin+i+1));if(!hits.some(Boolean))continue;let mark='';for(let j=0;j<hits.length;){let k=j+1;while(k<hits.length&&hits[k]===hits[j])k++;mark+=hits[j]?`<span class="track-run" style="width:${k-j}ch;--track-color:${t.color};--track-radius:${Math.min(t.radius ?? s.radius,20)}px;--track-height:${t.showLabel?Math.max(14,t.labelSize+5):8}px;--label-size:${t.labelSize}px;--label-color:${t.labelColor}" title="${escAttr(t.group+' · '+t.region+' · '+t.name)}">${t.showLabel?`<span class="track-run-label">${escapeHTML(t.region)}</span>`:''}</span>`:`<span class="track-space" style="width:${k-j}ch"></span>`;j=k}html+=`<div class="aln-track"><span class="track-label">${escapeHTML(t.label || '')}</span>${s.showStart?`<span style="display:inline-block;width:calc(${nDigits}ch + 10px)"></span>`:''}<span class="aln-seq">${mark}</span></div>`}}
+ for(const name of names){const segment=d.seqs.get(name).slice(begin,end);const start=counts[name]+1;counts[name]+=segment.replace(/[-.]/g,'').length;
+ const colored=Array.from(segment,c=>`<span style="color:${color(c,s.palette)}">${escapeHTML(c==='-'&&!s.showGap?' ':c)}</span>`).join('');
+ html+=`<div class="aln-line"><span class="aln-name" title="${escapeHTML(name)}">${escapeHTML(name)}</span>${s.showStart?`<span class="aln-count" style="margin:0 10px 0 0">${String(start).padStart(nDigits,' ')}</span>`:''}<span class="aln-seq">${colored}</span>${s.showCount?`<span class="aln-count">${counts[name]}</span>`:''}</div>`}
+ if(s.showCons){const cons=d.cons.slice(begin,end);html+=`<div class="aln-line"><span class="aln-name"></span>${s.showStart?`<span style="display:inline-block;width:calc(${nDigits}ch + 10px)"></span>`:''}<span class="aln-seq aln-cons">${escapeHTML(cons)}</span></div>`}
+ drawTracks(tracks);
+ html+='</section>'}
+ html+='</div>';return html}
+function render(){if(!data)return;const s=settings(),tracks=allTracks(data);$('preview').innerHTML=buildAlignment(data,s,tracks);$('meta').textContent=`${data.seqs.size} 條序列 · ${data.total} columns · 每排 ${s.cols} 欄`;}
+function setData(text,name){try{data=parseClustal(text);tmEvidence.clear();renderTmEvidence();tmGeneAppearance.clear();resetPendingTm();$('tmAcc').value='';$('tmFetchStatus').textContent='';$('regionStatus').textContent='';$('tmInput').value='';$('tmAbsent').value='';$('tmConsensusOverride').value='';$('tmNotes').value='';$('tmSource').value='manual';updateTmSource();resetTmGenes(data);resetLookupInputs(data);$('filename').textContent=name;$('status').className=data.sawCons?'success':'error';$('status').textContent=data.sawCons?`讀取成功！${data.seqs.size} 條序列，${data.total} 欄，原始 * : . 已保留。`:`讀取成功，但原始檔沒有 * : . 符號；此工具不會自動計算或假造符號。`;for(const id of ['exportHtml','exportSvg','print'])$(id).disabled=false;renderGroups();render()}catch(e){data=null;tmEvidence.clear();renderTmEvidence();resetPendingTm();$('preview').innerHTML='<div class="empty">無法讀取檔案</div>';$('status').className='error';$('status').textContent=e.message;for(const id of ['exportHtml','exportSvg','print'])$(id).disabled=true}}
+$('file').addEventListener('change',async e=>{const f=e.target.files[0];if(f)setData(await f.text(),f.name)});$('loadPaste').onclick=()=>setData($('paste').value,'貼上的 CLUSTAL 內容');const drop=$('drop');drop.addEventListener('dragover',e=>{e.preventDefault();drop.style.background='#e0f2fe'});drop.addEventListener('dragleave',()=>drop.style.background='');drop.addEventListener('drop',async e=>{e.preventDefault();drop.style.background='';const f=e.dataTransfer.files[0];if(f)setData(await f.text(),f.name)});
+$('cornerRadius').addEventListener('input',()=>{$('radiusValue').textContent=$('cornerRadius').value+' px';render()});for(const id of ['cols','font','palette','showCons','showCount','showStart','showRuler','showGap'])$(id).addEventListener('input',render);
+function saveBlob(text,type,name){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('exportHtml').onclick=()=>{if(!data)return;const s=settings();const styles=document.querySelector('style').textContent;const inner=buildAlignment(data,s,allTracks(data));const out=`<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><title>Protein alignment</title><style>${styles}body{background:white}.alignment{padding:20px}</style><h2 style="font:600 19px system-ui;margin:18px">Protein Multiple Sequence Alignment</h2><div style="overflow:auto">${inner}</div>${evidenceMarkup('template')}</html>`;saveBlob(out,'text/html;charset=utf-8','protein_alignment_colored.html')};
+function exportSvg(){const s=settings(),tracks=allTracks(data),names=Array.from(data.seqs.keys());const charW=s.font*.605,lineH=s.font*1.55,nameChars=Math.max(12,...names.map(n=>n.length+2)),left=nameChars*charW+12+(s.showStart?45:0),width=left+s.cols*charW+65;let y=26,svg=[];const text=(x,y,t,c='#1f2937',weight='normal')=>`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" fill="${c}" font-family="Consolas,Courier New,monospace" font-size="${s.font}" font-weight="${weight}" xml:space="preserve">${escapeHTML(t)}</text>`;
+ const counts=Object.fromEntries(names.map(n=>[n,0]));for(let begin=0;begin<data.total;begin+=s.cols){const end=Math.min(data.total,begin+s.cols);if(s.showRuler){for(let j=begin;j<end;j++)if((j+1)%10===0)svg.push(text(left+(j-begin)*charW,y,'|','#64748b'));y+=lineH}
+ function drawTracks(selectedTracks){ for(const t of selectedTracks){const hits=Array.from({length:end-begin},(_,j)=>t.cols.has(begin+j+1));if(!hits.some(Boolean))continue;const trackHeight=t.showLabel?Math.max(14,t.labelSize+5):8;y+=Math.max(0,trackHeight-lineH+2);if(t.label)svg.push(text(8,y,t.label,'#475569'));let run=-1;for(let j=0;j<=hits.length;j++){if(j<hits.length&&hits[j]&&run<0)run=j;if(run>=0&&(j===hits.length||!hits[j])){{const x=left+run*charW,w=(j-run)*charW,h=t.showLabel?Math.max(14,t.labelSize+5):8,top=y-h*.8;svg.push(`<rect x="${x.toFixed(1)}" y="${top.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${Math.min(t.radius ?? s.radius,20)}" fill="${t.color}"><title>${escapeHTML(t.group+' · '+t.region+' · '+t.name)}</title></rect>`);if(t.showLabel&&w>=t.labelSize*.62*t.region.length){svg.push(`<text x="${(x+w/2).toFixed(1)}" y="${(top+h/2+t.labelSize*.35).toFixed(1)}" text-anchor="middle" font-family="Consolas,monospace" font-size="${t.labelSize}" fill="${t.labelColor}">${escapeHTML(t.region)}</text>`)}}run=-1}}y+=lineH}}
+ for(const name of names){const seg=data.seqs.get(name).slice(begin,end);const start=counts[name]+1;counts[name]+=seg.replace(/[-.]/g,'').length;svg.push(text(8,y,name));if(s.showStart)svg.push(text(left-43,y,String(start),'#64748b'));for(let j=0;j<seg.length;j++){const c=seg[j];if(c!=='-'||s.showGap)svg.push(text(left+j*charW,y,c,color(c,s.palette)))}if(s.showCount)svg.push(text(left+(end-begin)*charW+12,y,String(counts[name]),'#64748b'));y+=lineH}
+ if(s.showCons){const seg=data.cons.slice(begin,end);for(let j=0;j<seg.length;j++)if(seg[j]!==' ')svg.push(text(left+j*charW,y,seg[j],'#1e293b','bold'));y+=lineH}
+ drawTracks(tracks);
+y+=lineH*.8}
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(width)}" height="${Math.ceil(y+8)}" viewBox="0 0 ${Math.ceil(width)} ${Math.ceil(y+8)}">${evidenceMarkup('metadata')}<rect width="100%" height="100%" fill="white"/>${svg.join('')}</svg>`}
+$('exportSvg').onclick=()=>{if(data)saveBlob(exportSvg(),'image/svg+xml;charset=utf-8','protein_alignment_colored.svg')};$('print').onclick=()=>window.print();
+const demoText="CLUSTAL O(1.2.4) multiple sequence alignment\n\n\navpr1aa      ------------------------------------------------------------\t0\navpr1ab      ------------------------------------------------------------\t0\navpr2l       ------------------------------------MADNLNCSAG--------------\t10\navpr2aa      METFSREPGWEGSPHA---TT----AWTNFTSSLFSDHTGLNSTFR-GGSYFWLVSQNSS\t52\navpr2ab      ----MRIASWEDNLGQPNHSVLEMEGPPDLSSSLF----NLSSSYGGTGAFLWLYPSENV\t52\n                                                                         \n\navpr1aa      ----METHSNTSHPPNTSDPFGRDEEVAKIEIAVLSVTFAVAVIGNYSVLVAIHNTKKKT\t56\navpr1ab      ----MGNTSNQITANNTTDPFGRNEDVAKMEITVLSVTFLVAVVGNLCVLLAMHNTKKKS\t56\navpr2l       ------NCS-----SAHDAFGLSDGHFALVKAAVLGCVFVLATCSNLFLLHALWKRRKRH\t59\navpr2aa      I----NP-T-----QKPGPVKIRDVALAQAEIGILGLVLALTTLGNSFILWVLLRRRKYN\t102\navpr2ab      TWTTMRPTM-----QPVTPPRVRDQALAQAEIGVLGLVLALTALGNGFVLWVLLRRKKNH\t107\n                                    :  .*  :  :*. .: ::. .*  :* .: . :*  \n\navpr1aa      SRMHLFIKHLSLADLVVAFFQVLPQLCWEITFRFYGPDFLCRIVKHLQVMGMFASTYMMV\t116\navpr1ab      SRMHLFIKHLSLADLVVAFFQVLPQLCWEITYRFYGPDFLCRIVKHLQVLGMFASTYMMV\t116\navpr2l       TRTQLFLLHLCLADLVVAFFQVLPQLSMEITHRFRGSDLVCRSVKYLQVVGMFASSYMIV\t119\navpr2aa      APMHQFMVNLCVADLVVGFFQVLPQMLWDITERFQGPDVLCRSVKYLQIVGMFASSYMIV\t162\navpr2ab      APMHLFMVNLCVADLVVAFFQVLPQLVWDITERFHGPDALCRSVKYLQIVGMFASSYMIV\t167\n             :  : *: :*.:*****.*******:  :** ** * * :** **:**::*****:**:*\n\navpr1aa      MMTLDRYIAICHPLKTLQQST-RRSQVMIGGTWVCSLVLSSPQYFIFSLSEIQNGSEVFD\t175\navpr1ab      MMTLDRYIAICHPLKTLQQPT-RRAYIMICSTWLCSLLLSTPQYFIFSLSEIQNGSDVYD\t175\navpr2l       AMTIDRYHAVCKPMVSFFRGSFRRY-VSISAAWLISLAFSAPQIFIFSLQEVEK--DVFD\t176\navpr2aa      AMTVDRHNAICCPLQAYKGGAVSRWNTPIMVAWGLSLILSVPQVFIFSRSEVSP--GVYE\t220\navpr2ab      AMTVDRHYAICCPLQAYRGGATSRWNTPIMVAWGLAFVLSLPQVFIFSQSEVSP--GVFE\t225\n              **:**: *:* *: :    :  *    *  :*  :: :* ** **** .*:.    *::\n\navpr1aa      CWAHFIQPWGVRAYITWITAGIFLVPVLILMTCYGFICHSIRMSIRYKSKR-------TQ\t228\navpr1ab      CWGHFIEPWGIRAYITWITVGIFLIPVVILMICYGFICHSIWKNFKCKTKRGAAHNPKSG\t235\navpr2l       CWATFIEPWGGRIYITWITLSVFVLPAVILMFCQIKICAGIYFNMKRKA-----------\t225\navpr2aa      CWGNFAEPWGLKAYVTWMTVAVFVLPTFIITVCQVRIFKEIHDNIYLKSERVVSVDLKKN\t280\navpr2ab      CWGHFAEPWGLKAYVTWMTVAVFVLPALIITVCQVRIFREIHDNIYLKSERVVTAEFKKN\t285\n             **. * :*** : *:**:* .:*::*..*:  *   *   *  .:  *:           \n\navpr1aa      ------------------------------------------------------------\t228\navpr1ab      ------------------------------------------------------------\t235\navpr2l       -----------------------------L------------------------------\t226\navpr2aa      RVIFHFPIFKKRARTVRETARRSGMPREARELHKKSTSSESSRSHTCNSEDAPEPDY---\t337\navpr2ab      SVFFHFPRREGGRGRTRKKNERSRQSRHSQQGEISLSQAHCSRSHHAGQEEFSSNLYDEY\t345\n                                                                         \n\navpr1aa      ---------------------------------------------------VF-------\t230\navpr1ab      ---------------------------------------------------MI-------\t237\navpr2l       -------------------------------------------------QGSA-------\t230\navpr2aa      -----C-DQSCQDGYSPSNLASQTHSSSPDVLPRIQTNPHTIWSNSAAVQTSYGYSV---\t388\navpr2ab      SQTLPCRSSMCEPCFGPCP------SSDPSIPNHLQNSPNNLSDPTHS-QSLSANSVCAL\t398\n                                                                         \n\navpr1aa      -GK------------------------QSVSSVSSISRAKLRTVKMTFVIVLAYVICWAP\t265\navpr1ab      -GK------------------------ASVSSVTIISRAKLRTVKMTFVIVLAYIVCWAP\t272\navpr2l       -GD-------------------------GRSSTKGISSAMLKTVKMTFIIILVYTLCWSP\t264\navpr2aa      -PHRNSKNT-TNNEDSNTSSEPSFQPCPLHPPLTGVSKAMSKTVKMTLVIVLVYTVCWSP\t446\navpr2ab      AGHTESSGASELWPDVLPDAFPLPTEYSHPPPVPGVTKAMSKTVRMTLVIVLVYTICWSP\t458\n               .                                :: *  :**:**::*:*.* :**:*\n\navpr1aa      FFTVQMWSVWDQSFNWDDSKNTAVTLSALLASLNSCCNPWIYMVFSGHLLQDFALCFPCC\t325\navpr1ab      FFTVQMWSVWDENFSWDDSENAAVTLSALLASLNSCCNPWIYMLFSGHLLHDFLGCFPCW\t332\navpr2l       FFVVQLWSAWSPSSAP--TQGPVFVTIMLLASLNSCTNPWIYLYYS--------------\t308\navpr2aa      FFIVQLWAAWDPN-PP--DQGVAFTILMLLASLNSCTNPWIYTAFSSSVSRELLALLRCR\t503\navpr2ab      FFIVQLWAAWDPN-PP--IQGAVFTILMLLASLNSCTNPWIYTAFSSSVSRELLALLRCH\t515\n             ** **:*:.*. .      :. ...   ******** *****  :*              \n\navpr1aa      QKIRKSFRKEDSDSSIRRTTLLTRMANRSPTCSSSTWRELQHSPKTDRSTPANT------\t379\navpr1ab      NKPQNTLHKEDSDSSIRRNTLLSKLTSVRAKDGFDSWKDPCNSRKSSQSIGLDYSRKSSQ\t392\navpr2l       ------------------------------------------------------------\t308\navpr2aa      PKVPRRSSLYDHSSDINTSTT--K-DNQ--------Y-----------------------\t529\navpr2ab      RRSPRRGSLPDDSTATHTSTN--TKDSI--------Y-----------------------\t542\n                                                                         \n\navpr1aa      ------------------\t379\navpr1ab      CLHFDCSRKSSQSVPMES\t410\navpr2l       ------------------\t308\navpr2aa      ------------------\t529\navpr2ab      ------------------\t542\n                               \n";
+$('demo').onclick=()=>{
+ setData(demoText,'AVP 五條序列（示範資料）');
+ if(!data)return;
+ groups=[];
+ $('tmInput').value='avpr1aa TM示範 85 110\navpr1ab TM示範 89 113';
+ for(const input of $('tmGenes').querySelectorAll('input'))input.checked=['avpr1aa','avpr1ab'].includes(input.value);
+ $('tmView').value='individual';
+ $('tmNotes').value='介面示範用手動座標。';
+ updateTmSource();
+ renderGroups();
+ updateTmControls();
+ $('regionStatus').textContent='AVP 範例使用介面測試用座標。';
+};renderGroups();
+</script></body></html>
