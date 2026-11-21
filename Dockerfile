@@ -4,9 +4,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements-prediction.txt ./
-RUN --mount=type=secret,id=clustal_build_ca \
-    if [ -r /run/secrets/clustal_build_ca ]; then export PIP_CERT=/run/secrets/clustal_build_ca; fi; \
-    pip install --no-cache-dir -r requirements-prediction.txt
+RUN pip install --no-cache-dir -r requirements-prediction.txt
 RUN useradd --create-home --uid 10001 clustal
 
 COPY prediction_server.py index.html alignment-viewer.js tm-annotations.js tm-annotations.css figure-export.js project.js prediction-config.js prediction-client.js ./
