@@ -10,7 +10,10 @@ const tmAnnotationStatusLabels = new Map([
  ['declared', '僅有來源標籤'], ['pending', '待核對'], ['invalid', '有錯誤']
 ]);
 const tmAnnotationColumns = ['sequence_id', 'region', 'start', 'end', 'source'];
-const tmAnnotationFields = ['sequenceId', 'region', 'start', 'end', 'source'];
+const tmAnnotationFields = ['sequenceId', 'region', 'start', 'end', 'source', 'coordinateType'];
+const tmCoordinateLabels = new Map([
+ ['peptide', 'Peptide'], ['alignment', 'Alignment']
+]);
 const tmAnnotationSelection = new Set();
 let tmAnnotationEditor = null;
 let tmAnnotationImportRequest = 0;
@@ -82,15 +85,17 @@ function changeTmRegionColor(color) {
  document.dispatchEvent(new CustomEvent('projectchange', {detail: {target: color ? mode+':'+key : null}}));
 }
 
-function tmAnnotationProblem(dataset, fields, lengths = new Map()) {
- const [sequenceId, region, start, end] = fields;
+function tmAnnotationProblem(dataset, {sequenceId, region, start, end, coordinateType}, lengths = new Map()) {
  if (!dataset.seqs.has(sequenceId)) return '序列 ID 「' + sequenceId + '」不存在。';
  if (!region || /\s/.test(region)) return '區段名稱必填，且不可包含空白。';
+ if (!tmCoordinateLabels.has(coordinateType)) return '座標類型須填 peptide 或 alignment。';
  if (![start, end].every(value => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)))) {
   return '起點與終點必須為正整數。';
  }
- if (!lengths.has(sequenceId)) lengths.set(sequenceId, ungapped(dataset.seqs.get(sequenceId)).length);
- const length = lengths.get(sequenceId);
+ if (coordinateType === 'peptide' && !lengths.has(sequenceId)) {
+  lengths.set(sequenceId, ungapped(dataset.seqs.get(sequenceId)).length);
+ }
+ const length = coordinateType === 'alignment' ? dataset.total : lengths.get(sequenceId);
  if (Number(start) < 1 || Number(end) < Number(start) || Number(end) > length) {
   return '起點與終點須依序落在 1–' + length + ' 之內。';
  }
@@ -103,11 +108,13 @@ function parseTmAnnotations(dataset, text = $('tmInput').value) {
  for (const [index, line] of text.split(/\r?\n/).entries()) {
   if (!line.trim()) continue;
   const fields = line.trim().split(/\s+/);
-  const [sequenceId = '', region = '', start = '', end = ''] = fields;
+  const [sequenceId = '', region = '', start = '', end = '', coordinateType = 'peptide'] = fields;
   const key = tmAnnotationKey(sequenceId, region);
-  const problem = fields.length !== 4 ? '需要序列 ID、區段、起點與終點四個欄位。'
-   : tmAnnotationProblem(dataset, fields, lengths);
-  rows.push({index, key, sequenceId, region, start, end, problem});
+  const row = {index, key, sequenceId, region, start, end, coordinateType};
+  row.problem = fields.length < 4 || fields.length > 5
+   ? '需要序列 ID、區段、起點、終點，以及選填的座標類型。'
+   : tmAnnotationProblem(dataset, row, lengths);
+  rows.push(row);
  }
  const keyCounts = new Map();
  for (const {key} of rows) keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
@@ -121,13 +128,34 @@ function tmAnnotationSource(key) {
  return tmAnnotationSources.get(key) || tmEvidence.get(key)?.source?.toLowerCase() || 'manual';
 }
 
+function tmAnnotationAlignmentColumns(dataset, {sequenceId, start, end, coordinateType}) {
+ const first = Number(start);
+ const last = Number(end);
+ return coordinateType === 'alignment'
+  ? Array.from({length:last-first+1}, (_, index) => first+index)
+  : residueColumns(dataset.seqs.get(sequenceId), first, last);
+}
+
+function tmMatchesOriginal(row, evidence) {
+ const first = Number(row.start);
+ const last = Number(row.end);
+ if (row.coordinateType === 'peptide') {
+  return evidence.originalResidues[0] === first && evidence.originalResidues[1] === last;
+ }
+ const columns = evidence.originalAlignmentColumns;
+ return columns.length === last-first+1 && columns.every((column, index) => column === first+index);
+}
+
+function tmAnnotationLine({sequenceId, region, start, end, coordinateType}) {
+ return [sequenceId, region, start, end, ...(coordinateType === 'alignment' ? ['alignment'] : [])].join(' ');
+}
+
 function tmAnnotationState(row) {
  if (row.problem) return 'invalid';
  const source = tmAnnotationSource(row.key);
  const evidence = tmEvidence.get(row.key);
  if (evidence?.source?.toLowerCase() !== source) return source === 'manual' ? 'manual' : 'declared';
- return evidence.originalResidues[0] === Number(row.start) && evidence.originalResidues[1] === Number(row.end)
-  ? 'as_imported' : 'manually_changed';
+ return tmMatchesOriginal(row, evidence) ? 'as_imported' : 'manually_changed';
 }
 
 function tmAnnotationOption(value, text, current) {
@@ -136,13 +164,17 @@ function tmAnnotationOption(value, text, current) {
 }
 
 function tmAnnotationRowEditor(fields, problem = '') {
- const [sequenceId, region, start, end, source] = fields;
+ const [sequenceId, region, start, end, source, coordinateType] = fields;
  const names = [...data.seqs.keys()];
  if (!data.seqs.has(sequenceId)) names.unshift(sequenceId);
- return '<tr class="tm-annotation-editor"><td colspan="7"><form id="tmAnnotationForm" novalidate data-index="' + tmAnnotationEditor + '">'
+ return '<tr class="tm-annotation-editor"><td colspan="8"><form id="tmAnnotationForm" novalidate data-index="' + tmAnnotationEditor + '">'
   + '<div class="tm-style-grid">'
   + '<label>序列<select name="sequenceId">' + names.map(name => tmAnnotationOption(name, name, sequenceId)).join('') + '</select></label>'
   + '<label>區段<input name="region" type="text" value="' + escapeHTML(region) + '" required></label>'
+  + '<label>座標類型<select name="coordinateType">'
+  + [...tmCoordinateLabels].map(([value, label]) => tmAnnotationOption(value,
+   label + (value === 'alignment' ? '（含 gap）' : '（不含 gap）'), coordinateType)).join('')
+  + '</select></label>'
   + '<label>起點<input name="start" inputmode="numeric" value="' + escapeHTML(start) + '" required></label>'
   + '<label>終點<input name="end" inputmode="numeric" value="' + escapeHTML(end) + '" required></label>'
   + '<label>來源<select name="source">'
@@ -175,10 +207,11 @@ function renderTmAnnotationTable() {
   const source = tmAnnotationSource(row.key);
   const status = tmAnnotationState(row);
   if (tmAnnotationEditor === row.index) {
-   return tmAnnotationRowEditor(draft || [row.sequenceId,row.region,row.start,row.end,source], draftProblem || row.problem);
+   return tmAnnotationRowEditor(draft || [row.sequenceId,row.region,row.start,row.end,source,row.coordinateType], draftProblem || row.problem);
   }
   if (!matches(source, status)) return '';
-  const cells = [row.sequenceId,row.region,row.start,row.end,tmAnnotationSourceLabels.get(source) || source];
+  const coordinateLabel = tmCoordinateLabels.get(row.coordinateType) ?? row.coordinateType;
+  const cells = [row.sequenceId,row.region,row.start,row.end,coordinateLabel,tmAnnotationSourceLabels.get(source) || source];
   const problem = row.problem ? '<span class="error">' + escapeHTML(row.problem) + '</span>' : tmAnnotationStatusLabels.get(status);
   return '<tr data-tm-row="' + escapeHTML(row.key) + '">'
    + cells.map(value => '<td>' + escapeHTML(value) + '</td>').join('')
@@ -189,15 +222,15 @@ function renderTmAnnotationTable() {
  }).join('');
  const pendingMarkup = pendingTm?.dataset === data && matches(pendingTm.source, 'pending')
   ? [...pendingTm.results].flatMap(([sequenceId, ranges]) => ranges.map(([start, end], i) => {
-   const values = [sequenceId,'TM'+(i+1),start,end,tmAnnotationSourceLabels.get(pendingTm.source)];
+   const values = [sequenceId,'TM'+(i+1),start,end,'Peptide',tmAnnotationSourceLabels.get(pendingTm.source)];
    return '<tr>' + values.map(value => '<td>' + escapeHTML(value) + '</td>').join('')
     + '<td>待核對</td><td><button type="button" class="secondary" data-tm-review>核對匯入</button></td></tr>';
   })).join('') : '';
  const newMarkup = tmAnnotationEditor === 'new'
-  ? tmAnnotationRowEditor(draft || [data.seqs.keys().next().value,'','','','manual'], draftProblem) : '';
+  ? tmAnnotationRowEditor(draft || [data.seqs.keys().next().value,'','','','manual','peptide'], draftProblem) : '';
  const body = rowMarkup + pendingMarkup + newMarkup;
  panel.innerHTML = body
-  ? '<table aria-describedby="tmAnnotationHelp"><thead><tr><th scope="col">序列</th><th scope="col">區段</th><th scope="col">起點</th><th scope="col">終點</th><th scope="col">來源</th><th scope="col">狀態</th><th scope="col">操作</th></tr></thead><tbody>' + body + '</tbody></table>'
+  ? '<table aria-describedby="tmAnnotationHelp"><thead><tr><th scope="col">序列</th><th scope="col">區段</th><th scope="col">起點</th><th scope="col">終點</th><th scope="col">座標類型</th><th scope="col">來源</th><th scope="col">狀態</th><th scope="col">操作</th></tr></thead><tbody>' + body + '</tbody></table>'
   : '<p class="hint">' + (rows.length || pendingTm ? '沒有符合篩選條件的標註。' : '目前沒有標註。') + '</p>';
  syncTmAnnotationHighlights();
 }
@@ -303,11 +336,11 @@ function tmFinishAnnotationEdit() {
 }
 
 function tmSaveAnnotation(form) {
- const fields = tmAnnotationFields.map(name => form.elements[name].value.trim());
- const [sequenceId, region, start, end, source] = fields;
+ const row = Object.fromEntries(tmAnnotationFields.map(name => [name,form.elements[name].value.trim()]));
+ const {sequenceId, region, source} = row;
  const key = tmAnnotationKey(sequenceId, region);
  const rows = parseTmAnnotations(data);
- const problem = tmAnnotationProblem(data, fields)
+ const problem = tmAnnotationProblem(data, row)
   || (rows.some(row => row.key === key && row.index !== tmAnnotationEditor) ? '同一序列的區段名稱重複。' : '');
  if (problem) {
   $('tmAnnotationRowError').textContent = problem;
@@ -315,7 +348,7 @@ function tmSaveAnnotation(form) {
  }
  const previous = rows.find(row => row.index === tmAnnotationEditor);
  const lines = tmAnnotationLines();
- const line = [sequenceId,region,start,end].join(' ');
+ const line = tmAnnotationLine(row);
  if (previous) {
   lines[previous.index] = line;
   if (previous.key !== key) {
@@ -418,8 +451,14 @@ function tmExportAnnotations(separator, extension) {
   tmAnnotationFeedback('請先修正標註錯誤，再匯出表格。');
   return;
  }
- const fields = rows.map(row => [row.sequenceId,row.region,row.start,row.end,tmAnnotationSource(row.key)]);
- const body = [tmAnnotationColumns, ...fields].map(cells => cells.map(value => tmTableCell(value, separator)).join(separator)).join('\r\n');
+ const hasAlignment = rows.some(row => row.coordinateType === 'alignment');
+ const header = hasAlignment ? [...tmAnnotationColumns, 'coordinate_type'] : tmAnnotationColumns;
+ const fields = rows.map(row => {
+  const cells = [row.sequenceId,row.region,row.start,row.end,tmAnnotationSource(row.key)];
+  if (hasAlignment) cells.push(row.coordinateType);
+  return cells;
+ });
+ const body = [header, ...fields].map(cells => cells.map(value => tmTableCell(value, separator)).join(separator)).join('\r\n');
  saveBlob('\uFEFF' + body + '\r\n', extension === 'csv' ? 'text/csv;charset=utf-8' : 'text/tab-separated-values;charset=utf-8',
   'clustal_tm_annotations.' + extension);
  tmAnnotationFeedback('已匯出 ' + rows.length + ' 筆標註。');
@@ -427,8 +466,10 @@ function tmExportAnnotations(separator, extension) {
 
 function tmParseTable(text, separator, dataset) {
  const [header = [], ...rows] = tmReadDelimited(text, separator);
- if (header.length !== tmAnnotationColumns.length || header.some((cell, i) => cell.trim() !== tmAnnotationColumns[i])) {
-  throw Error('表頭需依序是 ' + tmAnnotationColumns.join('、') + '。可先匯出一份表格作為範本。');
+ const withCoordinate = header.length === tmAnnotationColumns.length + 1 && header.at(-1).trim() === 'coordinate_type';
+ if ((!withCoordinate && header.length !== tmAnnotationColumns.length)
+  || tmAnnotationColumns.some((column, i) => header[i].trim() !== column)) {
+  throw Error('表頭需依序是 ' + tmAnnotationColumns.join('、') + '，最後可加 coordinate_type。');
  }
  const entries = new Map();
  const lengths = new Map();
@@ -437,14 +478,15 @@ function tmParseTable(text, separator, dataset) {
    const value = cell.trim();
    return value.startsWith("'") && tmSpreadsheetPrefix.test(value.slice(1)) ? value.slice(1) : value;
   });
-  const [sequenceId, region, start, end, source] = fields;
+  const [sequenceId, region, start, end, source, coordinateType = 'peptide'] = fields;
   const key = tmAnnotationKey(sequenceId, region);
-  const problem = fields.length !== tmAnnotationColumns.length ? '欄位數量不符。'
-   : tmAnnotationProblem(dataset, fields, lengths)
+  const annotation = {sequenceId, region, start, end, coordinateType};
+  const problem = fields.length !== header.length ? '欄位數量不符。'
+   : tmAnnotationProblem(dataset, annotation, lengths)
     || (!tmAnnotationSourceLabels.has(source) ? '來源須填 manual、uniprot 或 deeptmhmm。' : '')
     || (entries.has(key) ? '表格內有重複的序列與區段。' : '');
   if (problem) throw Error('表格第 ' + (index + 2) + ' 列：' + problem);
-  entries.set(key, {line:[sequenceId,region,start,end].join(' '),source});
+  entries.set(key, {line:tmAnnotationLine(annotation),source});
  }
  if (!entries.size) throw Error('表格沒有可匯入的標註。');
  return entries;

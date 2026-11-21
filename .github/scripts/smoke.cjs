@@ -135,6 +135,15 @@ async function smoke(page) {
   const consensusTrack = preview.locator('.aln-track').last();
   assert.equal(await consensusTrack.locator('.track-label').textContent(), '');
   assert.equal(await consensusTrack.locator('.track-run-label').textContent(), 'TM1');
+  await page.locator('#tmAnnotations > summary').click();
+  await page.locator('[data-tm-row="sample_a TM1"] [data-tm-edit]').click();
+  const edit = page.locator('#tmAnnotationForm');
+  const coordinate = edit.locator('[name=coordinateType]');
+  assert.equal(await coordinate.inputValue(), 'peptide', 'DeepTMHMM coordinates exclude alignment gaps');
+  await coordinate.selectOption('alignment');
+  await edit.locator('[name=end]').fill('3');
+  await edit.locator('button[type=submit]').click();
+  assert.equal(await helix.count(), 1, 'An alignment-coordinate range must span the gap continuously');
   assert.deepEqual(pageErrors, [], 'Browser JavaScript errors');
   console.log(`Browser smoke passed for ${base.href}: demo, display settings, SVG, imports and TM appearance.`);
 }

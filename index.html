@@ -145,7 +145,7 @@
  <details id="tmAnnotations" class="tm-fold">
   <summary>編輯與核對 TM 標註</summary>
   <div class="tm-fold-body">
-   <p id="tmAnnotationHelp" class="hint">座標為各序列去除 gap 後的位置，從 1 開始，包含終點。先儲存各列，再匯出或查看色條。</p>
+   <p id="tmAnnotationHelp" class="hint">每筆可選 Alignment 欄位（含 gap）或 Peptide 胺基酸位置（不含 gap）。座標從 1 開始，包含終點。</p>
    <div class="tm-style-grid">
     <label>依來源篩選<select id="tmAnnotationSource"><option value="">全部來源</option><option value="manual">手動標註</option><option value="uniprot">UniProt</option><option value="deeptmhmm">DeepTMHMM</option></select></label>
     <label>依狀態篩選<select id="tmAnnotationStatus"><option value="">全部狀態</option><option value="manual">手動標註</option><option value="as_imported">與來源一致</option><option value="manually_changed">座標已修改</option><option value="declared">僅有來源標籤</option><option value="pending">待核對</option><option value="invalid">有錯誤</option></select></label>
@@ -157,7 +157,7 @@
     <button type="button" id="tmExportCsv" class="secondary">匯出 CSV</button>
     <button type="button" id="tmExportTsv" class="secondary">匯出 TSV</button>
    </div>
-   <p class="hint">表格欄位為 sequence_id、region、start、end、source。同一序列與區段的匯入資料會更新該列。</p>
+   <p class="hint">表格欄位為 sequence_id、region、start、end、source，可加 coordinate_type。同一序列與區段的匯入資料會更新該列。</p>
    <p id="tmAnnotationFeedback" class="hint" role="status"></p>
    <div id="tmAnnotationTable" class="tm-annotation-scroll"></div>
   </div>
@@ -165,7 +165,7 @@
  <div id="tmControls" class="group" style="display:none">
   <div><label for="tmInput">各序列的 TM 座標</label><span id="tmInputHelp"></span></div>
   <textarea id="tmInput" aria-describedby="tmFormat" placeholder="avpr1aa TM1 85 110"></textarea>
-  <div id="tmFormat" class="hint">每行輸入「序列 ID　TM 名稱　起點　終點」，用空白分隔。以無 gap 的蛋白質座標計數，從 1 開始，包含終點。同名 TM 才會一起比較。來源匯入時按各序列的區段順序編號，做 Consensus 前請確認同名區段在比對中對應。</div>
+  <div id="tmFormat" class="hint">每行輸入「序列 ID　TM 名稱　起點　終點」，用空白分隔。預設是 Peptide 胺基酸位置。若使用 Alignment 欄位，在行尾加上 <code>alignment</code>。同名 TM 才會一起比較，做 Consensus 前請確認同名區段在比對中對應。</div>
   <div id="tmIndividualControls" class="group"><label>顯示 Individual TM 的序列</label><div id="tmIndividualGenes" class="gene-grid"></div></div>
   <div id="tmConsensusControls" class="group">
    <div><label for="tmRule">Consensus TM 算法</label><span id="tmHelp"></span><select id="tmRule">
@@ -555,13 +555,14 @@ function tmTracks(d) {
   : Array.from($('tmGenes').querySelectorAll('input:checked'), input => input.value);
  const tracks = [], messages = [];
  const byRegion = new Map();
- for (const {index, sequenceId, region, start, end, problem} of parseTmAnnotations(d)) {
-  if (problem) {
-   messages.push('第 '+(index+1)+' 行：'+problem);
+ for (const row of parseTmAnnotations(d)) {
+  if (row.problem) {
+   messages.push('第 '+(row.index+1)+' 行：'+row.problem);
    continue;
   }
+  const {sequenceId, region} = row;
   if (!byRegion.has(region)) byRegion.set(region, new Map());
-  byRegion.get(region).set(sequenceId, residueColumns(d.seqs.get(sequenceId), Number(start), Number(end)));
+  byRegion.get(region).set(sequenceId, tmAnnotationAlignmentColumns(d, row));
  }
  const individualStyle = tmStyle('individual'), consensusStyle = tmStyle('consensus');
  if (individual) {
@@ -698,17 +699,33 @@ function uniprotRanges(entry, sequence, capture = () => {}) {
 const tmEvidence = new Map();
 function evidenceReport() {
  const current = new Map();
- for (const line of $('tmInput').value.split(/\r?\n/).filter(line=>line.trim())) {
-  const [sequenceId, tm, start, end] = line.trim().split(/\s+/);
-  const key = sequenceId+' '+tm;
-  current.set(key, current.has(key) ? null : [Number(start),Number(end)]);
+ if (data && tmEvidence.size) {
+  for (const row of parseTmAnnotations(data)) {
+   if (tmEvidence.has(row.key)) current.set(row.key, current.has(row.key) ? null : row);
+  }
  }
  const records = [...tmEvidence].map(([key,evidence]) => {
-  const coordinates = current.get(key);
-  const original = evidence.originalResidues;
-  const status = !coordinates ? (current.has(key) ? 'ambiguous' : 'removed')
-   : coordinates[0] === original[0] && coordinates[1] === original[1] ? 'as_imported' : 'manually_changed';
-  return {...evidence, currentResidues:coordinates ?? null, status};
+  const row = current.get(key);
+  const status = !row ? (current.has(key) ? 'ambiguous' : 'removed')
+   : !row.problem && tmMatchesOriginal(row, evidence) ? 'as_imported' : 'manually_changed';
+  const valid = row && !row.problem;
+  const currentCoordinates = valid ? {type:row.coordinateType, start:Number(row.start), end:Number(row.end)} : null;
+  const currentAlignmentColumns = valid ? tmAnnotationAlignmentColumns(data, row) : null;
+  let currentResidues = null;
+  if (currentCoordinates) {
+   const {type, start, end} = currentCoordinates;
+   if (type === 'peptide') {
+    currentResidues = [start, end];
+   } else {
+    const sequence = data.seqs.get(row.sequenceId);
+    const count = countAlignmentResidues(sequence, start-1, end);
+    if (count) {
+     const before = countAlignmentResidues(sequence, 0, start-1);
+     currentResidues = [before+1, before+count];
+    }
+   }
+  }
+  return {...evidence, currentResidues, currentCoordinates, currentAlignmentColumns, status};
  });
  return {schemaVersion:1, alignment:$('filename').textContent, records};
 }
@@ -719,9 +736,10 @@ function renderTmEvidence() {
   const coordinates = row.originalResidues.join('–');
   const codes = (row.feature?.evidences || []).map(e=>[e.evidenceCode,e.source,e.id].filter(Boolean).join(' '));
   const status = {as_imported:'座標與來源相同',manually_changed:'座標已手動修改',removed:'已移除',ambiguous:'座標重複'}[row.status];
-  const description = [row.source, row.accession || row.fileName, '原始座標 '+coordinates,
+  const current = row.currentCoordinates;
+  const description = [row.source, row.accession || row.fileName, '原始 Peptide 座標 '+coordinates,
    'Alignment columns '+row.originalAlignmentColumns.join(', '), status,
-   row.currentResidues ? '目前座標 '+row.currentResidues.join('–') : '',
+   current ? '目前 '+(current.type === 'alignment' ? 'Alignment' : 'Peptide')+' 座標 '+current.start+'–'+current.end : '',
    row.feature ? (codes.join('；') || '此 feature 未附證據代碼') : row.topologySegment].filter(Boolean).join('\n');
   const link = row.accession ? ` <a href="https://www.uniprot.org/uniprotkb/${encodeURIComponent(row.accession)}/entry" target="_blank" rel="noopener">${escapeHTML(row.accession)}</a>` : '';
   return `<div class="hint">${escapeHTML(row.sequenceId+' · '+row.tm)}${link}<span class="tm-method"><button type="button" aria-label="查看來源證據">ⓘ</button><span class="tm-help" role="tooltip" style="white-space:pre-wrap">${escapeHTML(description)}</span></span></div>`;

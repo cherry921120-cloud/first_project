@@ -113,9 +113,7 @@ function getFigureEvidence(tag, options) {
  const selected = new Set(options.names);
  report.records = report.records.filter(record => {
   if (!selected.has(record.sequenceId)) return false;
-  const columns = record.currentResidues
-   ? residueColumns(data.seqs.get(record.sequenceId), ...record.currentResidues)
-   : record.originalAlignmentColumns || [];
+  const columns = record.currentAlignmentColumns ?? record.originalAlignmentColumns ?? [];
   return columns.some(column => column > options.start && column <= options.end);
  });
  return report.records.length

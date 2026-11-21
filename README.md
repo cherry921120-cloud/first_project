@@ -4,6 +4,8 @@
 
 在 **TM 比較 → TM 色條外觀 → 各 TM 色條顏色** 可替同名 TM 統一配色，或指定某條序列的 TM 單獨改色。Individual 和 Consensus 有各自的顏色與左側名稱設定。左側名稱及色條內名稱可分別開關，設定會跟著專案存檔和匯出的圖。
 
+在 **編輯與核對 TM 標註** 新增或編輯區段時，每筆可選 Alignment 欄位（含 gap）或 Peptide 胺基酸位置（不含 gap）。以文字輸入時，行尾加上 `alignment` 代表使用 Alignment 欄位。CSV／TSV 可用第六欄 `coordinate_type` 指定 `alignment` 或 `peptide`，省略時使用 Peptide。
+
 ## 一鍵預測 TM
 
 上傳 `.aln` 並按下 **一鍵預測 TM 並標註**。網站會將去除 gap 的蛋白質序列以暫時 ID 送去執行 DeepTMHMM。結果回來後會核對完整序列，再把跨膜螺旋和 β 股畫在對應的比對序列下方。請開啟支援此功能的服務網址，或完成下方的 GitHub Pages 設定。
