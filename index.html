@@ -193,6 +193,7 @@
     <label>文字顏色<input id="tmLabelColor" type="color" value="#111111"></label>
     <label>文字大小（px）<input id="tmLabelSize" type="number" min="6" max="24" value="11"></label>
    </div>
+   <label class="check"><input id="tmShowTrackLabel" type="checkbox" checked>顯示色條左側名稱</label>
    <label class="check"><input id="tmShowLabel" type="checkbox">在色條內顯示名稱</label>
    <label for="tmNames">顯示名稱（選填）</label>
    <textarea id="tmNames" placeholder="TM1 = 第一跨膜區" aria-describedby="tmNamesHint"></textarea>
@@ -202,6 +203,17 @@
    <details id="tmIndividualColors" class="tm-fold">
     <summary>Individual 序列外觀覆寫（選填）</summary>
     <div id="tmGeneStyles" class="tm-fold-body"></div>
+   </details>
+   <details id="tmRegionAppearance" class="tm-fold">
+    <summary>各 TM 色條顏色</summary>
+    <div class="tm-fold-body">
+     <label for="tmRegionChoice">要調整的區段</label>
+     <select id="tmRegionChoice"></select>
+     <div class="buttons">
+      <input id="tmRegionColor" type="color" aria-label="所選 TM 的顏色" disabled>
+      <button id="tmRegionColorReset" type="button" class="secondary" disabled>恢復預設顏色</button>
+     </div>
+    </div>
    </details>
   </div></details>
   <div class="tm-source-row">
@@ -397,7 +409,7 @@ function tmHelp(method, id) {
 }
 $('tmInputHelp').innerHTML = tmHelp('source', 'tmSourceTip');
 $('tmViewHelp').innerHTML = tmHelp('individual', 'tmViewTip');
-const tmAppearanceControls = ['tmColor','tmRadius','tmLabelColor','tmLabelSize','tmShowLabel','tmNames','tmHidden'];
+const tmAppearanceControls = ['tmColor','tmRadius','tmLabelColor','tmLabelSize','tmShowTrackLabel','tmShowLabel','tmNames','tmHidden'];
 const tmAppearance = {
  individual: {},
  consensus: {tmColor:'#196d79'}
@@ -440,6 +452,7 @@ function updateTmControls() {
   }
  }
  renderTmGeneStyles();
+ renderTmRegionColors();
  render();
 }
 function resetTmGenes(d) {
@@ -467,6 +480,7 @@ function tmStyle(mode) {
  return {
   aliases, hidden, color:value('tmColor'),
   radius:Math.max(0, Math.min(20, Number(value('tmRadius')) || 0)),
+  showTrackLabel:style.tmShowTrackLabel ?? $('tmShowTrackLabel').defaultChecked,
   showLabel:style.tmShowLabel ?? $('tmShowLabel').defaultChecked,
   labelColor:value('tmLabelColor'),
   labelSize:Math.max(6, Math.min(24, Number(value('tmLabelSize')) || 11))
@@ -498,6 +512,7 @@ $('tmGeneStyles').addEventListener('input', event => {
  overrides[key] = input.type === 'number' ? input.valueAsNumber : input.value;
  tmGeneAppearance.set(name, overrides);
  card.querySelector('[data-tm-reset]').disabled = false;
+ syncTmRegionColorInput();
  render();
 });
 $('tmGeneStyles').addEventListener('click', event => {
@@ -505,8 +520,27 @@ $('tmGeneStyles').addEventListener('click', event => {
  if (!button) return;
  tmGeneAppearance.delete(button.closest('[data-sequence]').dataset.sequence);
  renderTmGeneStyles();
+ syncTmRegionColorInput();
  render();
 });
+function readTmConsensusOverrides(maxColumn) {
+ const rangesByRegion = new Map();
+ const errors = [];
+ for (const line of $('tmConsensusOverride').value.split(/\r?\n/).filter(line => line.trim())) {
+  const [region, ranges] = line.trim().split(/\s+/, 2);
+  if (!/^\S+\s+\d+-\d+(,\d+-\d+)*$/.test(line.trim()) || rangesByRegion.has(region)) {
+   errors.push('修正格式有誤或區段重複：'+line);
+   continue;
+  }
+  const bounds = ranges.split(',').map(range => range.split('-').map(Number));
+  if (bounds.some(([a,b]) => a < 1 || b < a || b > maxColumn)) {
+   errors.push('修正欄位超出比對範圍：'+line);
+   continue;
+  }
+  rangesByRegion.set(region, bounds);
+ }
+ return {rangesByRegion, errors};
+}
 function tmTracks(d) {
  const mode = $('tmView').value;
  if (mode === 'off') return [];
@@ -540,7 +574,8 @@ function tmTracks(d) {
     const prediction = tmAnnotationSource(key) === 'deeptmhmm' ? deepTmPredictionLabel(proof) : '';
     const original = proof?.originalAlignmentColumns;
     const edited = prediction && (original?.length !== cols.length || cols.some((column, index) => column !== original[index]));
-    tracks.push({...individualStyle, ...tmGeneAppearance.get(name), name, sequenceRow:name, region:label,
+    tracks.push({...individualStyle, ...tmGeneAppearance.get(name), color:individualTmColor(name, region, individualStyle.color),
+     name, sequenceRow:name, region:label,
      label:name+' · '+label, group:edited ? prediction+' · 座標已修改' : prediction || 'Individual TM', cols:new Set(cols),
      memberNames:[name], annotationKeys:[key]});
    }
@@ -560,20 +595,8 @@ function tmTracks(d) {
    if (!absent.has(region)) absent.set(region,new Set());
    absent.get(region).add(name);
   }
-  const overrides = new Map();
-  for (const line of $('tmConsensusOverride').value.split(/\r?\n/).filter(l=>l.trim())) {
-   const [region, ranges] = line.trim().split(/\s+/,2);
-   if (!/^\S+\s+\d+-\d+(,\d+-\d+)*$/.test(line.trim()) || overrides.has(region)) {
-    messages.push('修正格式有誤或區段重複：'+line);
-    continue;
-   }
-   const bounds = ranges.split(',').map(range=>range.split('-').map(Number));
-   if (bounds.some(([a,b])=>a<1 || b<a || b>d.total)) {
-    messages.push('修正欄位超出比對範圍：'+line);
-    continue;
-   }
-   overrides.set(region,new Set(bounds.flatMap(([a,b])=>Array.from({length:b-a+1},(_,i)=>a+i))));
-  }
+  const {rangesByRegion:overrides, errors} = readTmConsensusOverrides(d.total);
+  for (const error of errors) messages.push(error);
   const kind = $('tmMajorityKind').value;
   const threshold = Number($('tmMajorityValue').value);
   const title = rule === 'reference' ? 'Reference TM' : 'Consensus TM · '+rule;
@@ -585,6 +608,7 @@ function tmTracks(d) {
    const effective = sources.length + negatives.length;
    const unknown = selected.filter(name=>!members.has(name) && !absent.get(region)?.has(name));
    const label = consensusStyle.aliases.get(region) || region;
+   const color = tmRegionColors.consensus.get(region) ?? consensusStyle.color;
    const minimum = rule === 'intersection' ? effective
     : rule !== 'majority' ? 1
     : kind === 'count' ? threshold
@@ -593,8 +617,11 @@ function tmTracks(d) {
    const summary = rule === 'reference' ? '參考 '+reference : '有效 '+effective+'/'+selected.length+'，至少 '+minimum+'/'+effective;
    const unknownText = unknown.length ? '，未知：'+unknown.join('、') : '';
    if (manual) {
-    if (!consensusStyle.hidden.has(region)) tracks.push({...consensusStyle, name:sources.join('、'), region:label,
-     label:title+' · '+label+'（手動）', group:title+' · 手動座標', cols:manual, memberNames:sources, annotationKeys});
+    if (!consensusStyle.hidden.has(region)) {
+     const cols = new Set(manual.flatMap(([a,b]) => Array.from({length:b-a+1}, (_,i) => a+i)));
+     tracks.push({...consensusStyle, color, name:sources.join('、'), region:label,
+      label:title+' · '+label+'（手動）', group:title+' · 手動座標', cols, memberNames:sources, annotationKeys});
+    }
     messages.push(region+'：手動座標；'+summary+unknownText);
     continue;
    }
@@ -610,7 +637,7 @@ function tmTracks(d) {
     for (const column of members.get(name)) votes.set(column,(votes.get(column)||0)+1);
    }
    const cols = new Set([...votes].filter(([,count])=>count>=minimum).map(([column])=>column));
-   if (cols.size && !consensusStyle.hidden.has(region)) tracks.push({...consensusStyle, name:sources.join('、'),
+   if (cols.size && !consensusStyle.hidden.has(region)) tracks.push({...consensusStyle, color, name:sources.join('、'),
     region:label, label:title+' · '+label, group:title, cols, memberNames:sources, annotationKeys});
    messages.push(region+'：'+summary+unknownText+(cols.size?'':'；沒有符合的欄位'));
   }
@@ -624,6 +651,7 @@ $('tmInput').addEventListener('input', () => {
  tmFinishAnnotationEdit();
  renderTmEvidence();
  renderTmAnnotationTable();
+ renderTmRegionColors();
  render();
 });
 $('tmReference').addEventListener('change', render);
@@ -634,6 +662,7 @@ for (const id of tmAppearanceControls) {
   const input = $(id);
   tmAppearance[$('tmStyleTarget').value][id] = input.type === 'checkbox' ? input.checked : input.value;
   renderTmGeneStyles();
+  syncTmRegionColorInput();
   render();
  });
 }
@@ -644,7 +673,11 @@ $('tmIndividualGenes').addEventListener('change', () => {
  render();
 });
 for (const id of ['tmMajorityKind','tmStyleTarget']) $(id).addEventListener('change', updateTmControls);
-for (const id of ['tmMajorityValue','tmAbsent','tmConsensusOverride']) $(id).addEventListener('input', render);
+for (const id of ['tmMajorityValue','tmAbsent']) $(id).addEventListener('input', render);
+$('tmConsensusOverride').addEventListener('input', () => {
+ renderTmRegionColors();
+ render();
+});
 const accessionPattern = /^(?:[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9](?:[A-Z][A-Z0-9]{2}[0-9]){1,2})$/;
 const ungapped = sequence => sequence.replace(/[-.]/g, '');
 function sourceLines(name, ranges, regionPrefix = 'TM') {
@@ -1039,6 +1072,8 @@ function setData(text, name, {onLoad} = {}) {
  tmEvidence.clear();
  tmAnnotationSources.clear();
  tmGeneAppearance.clear();
+ tmRegionColors.individual.clear();
+ tmRegionColors.consensus.clear();
  resetPendingTm();
  for (const id of ['tmAcc', 'tmInput', 'tmAbsent', 'tmConsensusOverride', 'tmNotes']) $(id).value = '';
  for (const id of ['tmFetchStatus', 'regionStatus']) $(id).textContent = '';

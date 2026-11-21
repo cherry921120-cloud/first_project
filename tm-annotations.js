@@ -1,6 +1,7 @@
 'use strict';
 
 const tmAnnotationSources = new Map();
+const tmRegionColors = {individual: new Map(), consensus: new Map()};
 const tmAnnotationSourceLabels = new Map([
  ['manual', '手動標註'], ['uniprot', 'UniProt'], ['deeptmhmm', 'DeepTMHMM']
 ]);
@@ -16,6 +17,69 @@ let tmAnnotationImportRequest = 0;
 
 function tmAnnotationKey(sequenceId, region) {
  return sequenceId + ' ' + region;
+}
+
+function individualTmColor(sequenceId, region, defaultColor) {
+ return tmRegionColors.individual.get(tmAnnotationKey(sequenceId, region))
+  ?? tmRegionColors.individual.get(region)
+  ?? tmGeneAppearance.get(sequenceId)?.color
+  ?? defaultColor;
+}
+
+function renderTmRegionColors() {
+ if (!$('tmRegionAppearance').open) return;
+ const choice = $('tmRegionChoice');
+ const previous = choice.value;
+ const mode = $('tmStyleTarget').value;
+ const rows = data ? parseTmAnnotations(data).filter(row => !row.problem) : [];
+ const regions = new Set(rows.map(row => row.region));
+ if (mode === 'consensus' && data) {
+  for (const name of readTmConsensusOverrides(data.total).rangesByRegion.keys()) regions.add(name);
+ }
+ choice.replaceChildren(new Option(regions.size ? '選擇區段' : '尚無可設定的區段', ''));
+ choice.disabled = !regions.size;
+ if (mode === 'consensus') {
+  for (const region of regions) choice.add(new Option(region, region));
+ } else if (regions.size) {
+  const shared = document.createElement('optgroup');
+  shared.label = '同名 TM（所有序列）';
+  for (const region of regions) shared.append(new Option(region, region));
+  const individual = document.createElement('optgroup');
+  individual.label = '只調整指定序列';
+  for (const {sequenceId, region, key} of rows) {
+   individual.append(new Option(sequenceId + ' · ' + region, key));
+  }
+  choice.append(shared, individual);
+ }
+ if ([...choice.options].some(option => option.value === previous)) choice.value = previous;
+ syncTmRegionColorInput();
+}
+
+function syncTmRegionColorInput() {
+ if (!$('tmRegionAppearance').open) return;
+ const mode = $('tmStyleTarget').value;
+ const key = $('tmRegionChoice').value;
+ const overrides = tmRegionColors[mode];
+ const input = $('tmRegionColor');
+ input.disabled = !key;
+ $('tmRegionColorReset').disabled = !key || !overrides.has(key);
+ const defaultColor = tmStyle(mode).color;
+ const [first, region] = key.split(' ', 2);
+ input.value = mode === 'individual' && region
+  ? individualTmColor(first, region, defaultColor)
+  : overrides.get(key) ?? defaultColor;
+}
+
+function changeTmRegionColor(color) {
+ const key = $('tmRegionChoice').value;
+ if (!key) return;
+ const mode = $('tmStyleTarget').value;
+ const overrides = tmRegionColors[mode];
+ if (color) overrides.set(key, color);
+ else overrides.delete(key);
+ syncTmRegionColorInput();
+ render();
+ document.dispatchEvent(new CustomEvent('projectchange', {detail: {target: color ? mode+':'+key : null}}));
 }
 
 function tmAnnotationProblem(dataset, fields, lengths = new Map()) {
@@ -145,6 +209,7 @@ function tmAnnotationFeedback(message) {
 function tmAnnotationsChanged() {
  renderTmEvidence();
  renderTmAnnotationTable();
+ renderTmRegionColors();
  render();
  document.dispatchEvent(new Event('projectchange'));
 }
@@ -253,7 +318,14 @@ function tmSaveAnnotation(form) {
  const line = [sequenceId,region,start,end].join(' ');
  if (previous) {
   lines[previous.index] = line;
-  if (previous.key !== key) tmAnnotationSources.delete(previous.key);
+  if (previous.key !== key) {
+   tmAnnotationSources.delete(previous.key);
+   const colors = tmRegionColors.individual;
+   if (colors.has(previous.key)) {
+    colors.set(key, colors.get(previous.key));
+    colors.delete(previous.key);
+   }
+  }
  } else {
   lines.push(line);
  }
@@ -277,6 +349,7 @@ function tmDeleteAnnotation(row) {
  const remains = parseTmAnnotations(data).some(item => item.key === row.key);
  if (!remains) {
   tmAnnotationSources.delete(row.key);
+  tmRegionColors.individual.delete(row.key);
   tmAnnotationSelection.delete(row.key);
  }
  tmAnnotationsChanged();
@@ -398,6 +471,10 @@ function tmImportAnnotationTable(text, separator, dataset) {
  tmAnnotationFeedback('已匯入 ' + entries.size + ' 筆，更新 ' + updated + ' 筆現有標註。');
 }
 
+document.getElementById('tmRegionAppearance').addEventListener('toggle', renderTmRegionColors);
+document.getElementById('tmRegionChoice').addEventListener('change', syncTmRegionColorInput);
+document.getElementById('tmRegionColor').addEventListener('input', event => changeTmRegionColor(event.target.value));
+document.getElementById('tmRegionColorReset').addEventListener('click', () => changeTmRegionColor(null));
 document.getElementById('tmAnnotations').addEventListener('toggle', () => renderTmAnnotationTable());
 for (const id of ['tmAnnotationSource', 'tmAnnotationStatus']) {
  document.getElementById(id).addEventListener('change', renderTmAnnotationTable);

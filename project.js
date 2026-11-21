@@ -43,6 +43,7 @@
       groups,
       styles: tmAppearance,
       geneStyles: [...tmGeneAppearance],
+      regionColors: Object.fromEntries(styleModes.map(mode => [mode, [...tmRegionColors[mode]]])),
       evidence: [...tmEvidence],
       annotationSources: [...tmAnnotationSources],
       lookup: [...$('tmLookupInputs').querySelectorAll('[data-lookup]')].map(card => [
@@ -89,7 +90,7 @@
       }
       if (!tmAppearanceControls.includes(key)) return false;
       if (key === 'tmColor' || key === 'tmLabelColor') return isColor(value);
-      return key === 'tmShowLabel' ? isBoolean(value) : isString(value);
+      return ['tmShowLabel', 'tmShowTrackLabel'].includes(key) ? isBoolean(value) : isString(value);
     });
   }
 
@@ -119,6 +120,10 @@
       || !pairsOf(state.annotationSources, value => ['manual', 'uniprot', 'deeptmhmm'].includes(value))
       || !pairsOf(state.lookup, value => isRecord(value) && isString(value.gene) && isString(value.species))) {
       throw Error('專案檔的排版或標註資料不完整。');
+    }
+    if (state.regionColors !== undefined && (!isRecord(state.regionColors)
+      || !styleModes.every(mode => pairsOf(state.regionColors[mode], isColor)))) {
+      throw Error('專案檔的 TM 區段顏色設定有誤。');
     }
     if (!isRecord(state.view) || !isString(state.view.search)
       || !listOf(state.view.hiddenNames, isString)) {
@@ -154,7 +159,10 @@
       const values = new Set(next.memberships[id]);
       for (const input of $(id).querySelectorAll('input')) input.checked = values.has(input.value);
     }
-    for (const mode of styleModes) tmAppearance[mode] = next.styles[mode];
+    for (const mode of styleModes) {
+      tmAppearance[mode] = next.styles[mode];
+      replaceMap(tmRegionColors[mode], next.regionColors?.[mode] ?? []);
+    }
     replaceMap(tmGeneAppearance, next.geneStyles);
     replaceMap(tmEvidence, next.evidence);
     replaceMap(tmAnnotationSources, next.annotationSources);

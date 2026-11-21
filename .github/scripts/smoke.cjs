@@ -120,8 +120,23 @@ async function smoke(page) {
   assert.equal(await helix.count(), 2, 'An alignment gap separates the two visible parts of the helix');
   assert.match(await helix.first().getAttribute('aria-label'), /DeepTMHMM 預測.*跨膜螺旋/);
   assert.match(await beta.getAttribute('aria-label'), /DeepTMHMM 預測.*跨膜 β 股/);
+  const betaColor = await beta.evaluate(mark => getComputedStyle(mark).backgroundColor);
+  await page.locator('#tmView').selectOption('both');
+  await page.getByText('TM 色條外觀', {exact:true}).click();
+  await page.locator('#tmRegionAppearance > summary').click();
+  await page.locator('#tmRegionChoice').selectOption('sample_a TM1');
+  await page.locator('#tmRegionColor').fill('#137e8b');
+  assert.equal(await helix.first().evaluate(mark => getComputedStyle(mark).backgroundColor), 'rgb(19, 126, 139)');
+  assert.equal(await beta.evaluate(mark => getComputedStyle(mark).backgroundColor), betaColor,
+    'A color for one sequence must preserve another sequence’s color for the same TM name');
+  await page.locator('#tmStyleTarget').selectOption('consensus');
+  await page.locator('#tmShowLabel').check();
+  await page.locator('#tmShowTrackLabel').uncheck();
+  const consensusTrack = preview.locator('.aln-track').last();
+  assert.equal(await consensusTrack.locator('.track-label').textContent(), '');
+  assert.equal(await consensusTrack.locator('.track-run-label').textContent(), 'TM1');
   assert.deepEqual(pageErrors, [], 'Browser JavaScript errors');
-  console.log(`Browser smoke passed for ${base.href}: demo, display settings, SVG, alignment and DeepTMHMM imports.`);
+  console.log(`Browser smoke passed for ${base.href}: demo, display settings, SVG, imports and TM appearance.`);
 }
 
 async function main() {

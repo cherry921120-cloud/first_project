@@ -104,7 +104,8 @@ function formatAlignmentBlock(d, s, tracks, options) {
   }
   if (!hasMark) return;
   const height = ` style="height:${alignmentTrackHeight(s, track)}px"`;
-  lines.push(`<div class="aln-track"${height}><span class="track-label">${escapeHTML(track.label || '')}</span>${startSpacer}<span class="aln-seq">${marks.join('')}</span></div>`);
+  const trackLabel = track.showTrackLabel === false ? '' : track.label || '';
+  lines.push(`<div class="aln-track"${height}><span class="track-label">${escapeHTML(trackLabel)}</span>${startSpacer}<span class="aln-seq">${marks.join('')}</span></div>`);
  }
  const rowTracks = new Map();
  const footerTracks = [];
