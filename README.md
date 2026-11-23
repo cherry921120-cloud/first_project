@@ -6,7 +6,7 @@
 
 在 **編輯與核對 TM 標註** 新增或編輯區段時，每筆可選 Alignment 欄位（含 gap）或 Peptide 胺基酸位置（不含 gap）。以文字輸入時，行尾加上 `alignment` 代表使用 Alignment 欄位。CSV／TSV 可用第六欄 `coordinate_type` 指定 `alignment` 或 `peptide`，省略時使用 Peptide。
 
-查完 UniProt 後，可在 **匯出結果** 勾選 **附上 UniProt 查閱報告**。HTML、SVG、PNG 下載為 ZIP，內含原圖及可離線閱讀的 `uniprot_report.html`。列印或儲存 PDF 時，報告另起一頁。報告收錄匯出序列的完整相符條目，以及落在匯出欄位範圍內的 UniProt TM 證據。
+在 **匯出結果** 勾選 **附上資料來源與設定報告**。所選的 HTML、SVG 或 PNG 會與可離線閱讀的 `alignment_report.html` 一起下載為 ZIP。列印或儲存 PDF 時，報告另起一頁。報告包含版面、標註座標類型、Consensus 方法、各區段樣式及匯出設定，並附上所選序列相符的 UniProt、DeepTMHMM 資料及落在匯出範圍內的 TM 證據。
 
 ## 一鍵預測 TM
 

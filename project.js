@@ -46,6 +46,7 @@
       regionColors: Object.fromEntries(styleModes.map(mode => [mode, [...tmRegionColors[mode]]])),
       evidence: [...tmEvidence],
       uniProtLookups: [...tmUniProtLookups],
+      deepTmLookups: [...tmDeepLookups],
       annotationSources: [...tmAnnotationSources],
       lookup: [...$('tmLookupInputs').querySelectorAll('[data-lookup]')].map(card => [
         card.dataset.lookup, {
@@ -102,6 +103,13 @@
       && isId(record.length) && Number.isSafeInteger(record.tmCount) && record.tmCount >= 0;
   }
 
+  function validDeepTmLookup(record) {
+    return isRecord(record)
+      && ['sequenceId', 'fileName', 'header', 'topology', 'importedAt'].every(key => isString(record[key]))
+      && /^[MBSIOP]+$/.test(record.topology)
+      && Number.isSafeInteger(record.tmCount) && record.tmCount >= 0;
+  }
+
   function validControl(id, value) {
     const input = $(id);
     if (input.type === 'checkbox') return isBoolean(value);
@@ -136,6 +144,9 @@
     if (state.uniProtLookups !== undefined && !pairsOf(state.uniProtLookups, validUniProtLookup)) {
       throw Error('專案檔的 UniProt 查閱資料有誤。');
     }
+    if (state.deepTmLookups !== undefined && !pairsOf(state.deepTmLookups, validDeepTmLookup)) {
+      throw Error('專案檔的 DeepTMHMM 預測資料有誤。');
+    }
     if (!isRecord(state.view) || !isString(state.view.search)
       || !listOf(state.view.hiddenNames, isString)) {
       throw Error('專案檔的序列顯示設定有誤。');
@@ -143,6 +154,7 @@
     if (!isRecord(state.figure)
       || !['scope', 'start', 'end', 'preset', 'background'].every(key => isString(state.figure[key]))
       || (state.figure.uniProtReport !== undefined && !isBoolean(state.figure.uniProtReport))
+      || (state.figure.alignmentReport !== undefined && !isBoolean(state.figure.alignmentReport))
       || !listOf(state.figure.names, isString)) {
       throw Error('專案檔的匯出設定有誤。');
     }
@@ -178,6 +190,7 @@
     replaceMap(tmGeneAppearance, next.geneStyles);
     replaceMap(tmEvidence, next.evidence);
     replaceMap(tmUniProtLookups, next.uniProtLookups ?? []);
+    replaceMap(tmDeepLookups, next.deepTmLookups ?? []);
     replaceMap(tmAnnotationSources, next.annotationSources);
     const lookup = new Map(next.lookup);
     for (const card of $('tmLookupInputs').querySelectorAll('[data-lookup]')) {

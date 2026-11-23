@@ -246,8 +246,8 @@
   <div><label for="exportPreset">出圖預設</label><select id="exportPreset"><option value="current">沿用預覽排版</option><option value="presentation">簡報（大字、PNG 2×）</option><option value="report">報告（緊湊、PNG 3×）</option></select></div>
   <div><label for="exportPngBackground">PNG 背景</label><select id="exportPngBackground"><option value="white">白底</option><option value="transparent">透明</option></select></div>
  </div>
- <label class="check"><input type="checkbox" id="exportUniProtReport" aria-describedby="exportUniProtHelp">附上 UniProt 查閱報告</label>
- <div id="exportUniProtHelp" class="hint">所選的 HTML、SVG 或 PNG 將與報告一起下載為 ZIP。列印／PDF 時，報告另起一頁。</div>
+ <label class="check"><input type="checkbox" id="exportAlignmentReport" aria-describedby="exportReportHelp">附上資料來源與設定報告</label>
+ <div id="exportReportHelp" class="hint">匯出設定、UniProt 與 DeepTMHMM 資料放在獨立報告。圖檔下載為 ZIP，列印／PDF 時報告另起一頁。</div>
  <div id="exportStatus" class="hint" role="status"></div>
  <div class="buttons">
   <button type="button" id="exportHtml" disabled>下載 HTML</button>
@@ -701,6 +701,7 @@ function uniprotRanges(entry, sequence, capture = () => {}) {
 }
 const tmEvidence = new Map();
 const tmUniProtLookups = new Map();
+const tmDeepLookups = new Map();
 function evidenceReport() {
  const current = new Map();
  if (data && tmEvidence.size) {
@@ -1019,8 +1020,7 @@ $('tmFetch').onclick = async () => {
 function deepTmRows(raw, dataset, fileName, {identifiers, regionPrefix = 'TM'} = {}) {
  const lines = raw.split(/\r?\n/).map((line, index) => ({text:line.trim(), number:index+1}))
   .filter(line => line.text);
- const results = new Map(), evidence = new Map(), report = [], seen = new Set();
- let matchedCount = 0;
+ const results = new Map(), evidence = new Map(), lookups = new Map(), report = [], seen = new Set();
  if (!lines.length || lines.length % 3) throw Error('請選擇 DeepTMHMM 的 predicted_topologies.3line。');
  const importedAt = new Date().toISOString();
  for (let i=0; i<lines.length; i+=3) {
@@ -1040,7 +1040,6 @@ function deepTmRows(raw, dataset, fileName, {identifiers, regionPrefix = 'TM'} =
    report.push(name+'：預測結果的完整序列與目前比對不符');
    continue;
   }
-  matchedCount++;
   const ranges = [...topology.matchAll(/M+|B+/g)].map((m,index) => {
    evidence.set(name+' '+regionPrefix+(index+1),{
     source:'DeepTMHMM', kind:'imported_prediction', fileName, header, topology,
@@ -1048,10 +1047,14 @@ function deepTmRows(raw, dataset, fileName, {identifiers, regionPrefix = 'TM'} =
    });
    return [m.index+1,m.index+m[0].length];
   });
+  lookups.set(name, {sequenceId:name, fileName, header, topology, importedAt, tmCount:ranges.length});
   if (ranges.length) results.set(name,ranges);
   report.push(name+'：'+(ranges.length ? ranges.length+' 個跨膜區段' : '沒有預測到 TM'));
  }
- return {results,report,evidence,matchedCount};
+ return {results, report, evidence, lookups, matchedCount:lookups.size};
+}
+function rememberDeepTmLookups(lookups) {
+ for (const [name, lookup] of lookups) tmDeepLookups.set(name, lookup);
 }
 $('tmFasta').onclick = () => {
  if (!data) { $('tmFetchStatus').textContent = '請先匯入 Clustal 比對。'; return; }
@@ -1060,9 +1063,11 @@ $('tmFasta').onclick = () => {
 };
 let deepTmReadRequest = 0;
 function previewDeepTmResult(raw, dataset, fileName) {
- const {results,report,evidence} = deepTmRows(raw, dataset, fileName);
+ const {results,report,evidence,lookups} = deepTmRows(raw, dataset, fileName);
+ rememberDeepTmLookups(lookups);
  previewSourceRows(results, 'deeptmhmm', evidence);
  $('tmFetchStatus').textContent = report.join('\n');
+ if (lookups.size) document.dispatchEvent(new Event('projectchange'));
 }
 $('tmDeepFile').onchange = async event => {
  const file = event.target.files[0];
@@ -1108,6 +1113,7 @@ function setData(text, name, {onLoad} = {}) {
  $('demoGuide').hidden = true;
  tmEvidence.clear();
  tmUniProtLookups.clear();
+ tmDeepLookups.clear();
  tmAnnotationSources.clear();
  tmGeneAppearance.clear();
  tmRegionColors.individual.clear();
@@ -1223,7 +1229,8 @@ $('demo').onclick = () => {
 };
 renderGroups();
 </script>
-<script src="uniprot-report.js" defer></script>
+<script src="alignment-settings-report.js" defer></script>
+<script src="alignment-report.js" defer></script>
 <script src="figure-export.js" defer></script>
 <script src="project.js" defer></script>
 <script src="prediction-config.js" defer></script>

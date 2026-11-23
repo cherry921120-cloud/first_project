@@ -125,10 +125,12 @@
     if (job.status === 'done') {
      if (data !== dataset || activeJob !== controller) return;
      if (typeof job.topology !== 'string') throw Error('預測服務未回傳 .3line 結果。');
-     const {results, evidence, matchedCount} = deepTmRows(job.topology, dataset, 'DeepTMHMM 一鍵預測', {identifiers, regionPrefix});
+     const {results, evidence, lookups, matchedCount} = deepTmRows(job.topology, dataset, 'DeepTMHMM 一鍵預測', {identifiers, regionPrefix});
      if (matchedCount !== records.length) throw Error('預測結果與送出的序列不完全相符，請再次預測。');
      const detected = [...results.values()].reduce((sum, ranges) => sum + ranges.length, 0);
+     rememberDeepTmLookups(lookups);
      const added = applySourceRows(results, 'deeptmhmm', evidence, regionPrefix);
+     if (!added) document.dispatchEvent(new Event('projectchange'));
      const previous = detected - added;
      announce(detected
       ? '預測完成。已標註 '+added+' 個跨膜區段。'+(previous ? ' 已保留 '+previous+' 個同名標註。' : '')

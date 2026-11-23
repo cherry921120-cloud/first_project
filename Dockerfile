@@ -7,7 +7,7 @@ COPY requirements-prediction.txt ./
 RUN pip install --no-cache-dir -r requirements-prediction.txt
 RUN useradd --create-home --uid 10001 clustal
 
-COPY --chmod=0644 prediction_server.py index.html alignment-viewer.js tm-annotations.js tm-annotations.css figure-export.js uniprot-report.js project.js prediction-config.js prediction-client.js ./
+COPY --chmod=0644 prediction_server.py index.html alignment-viewer.js tm-annotations.js tm-annotations.css figure-export.js alignment-report.js alignment-settings-report.js project.js prediction-config.js prediction-client.js ./
 USER clustal
 EXPOSE 8080
 CMD ["sh", "-c", "exec gunicorn --workers 1 --threads 4 --bind \"0.0.0.0:${PORT:-8080}\" prediction_server:app"]

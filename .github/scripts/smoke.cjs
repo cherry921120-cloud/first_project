@@ -144,6 +144,17 @@ async function smoke(page) {
   await edit.locator('[name=end]').fill('3');
   await edit.locator('button[type=submit]').click();
   assert.equal(await helix.count(), 1, 'An alignment-coordinate range must span the gap continuously');
+  await page.locator('#exportAlignmentReport').check();
+  const [reportDownload] = await Promise.all([
+    page.waitForEvent('download'),
+    page.locator('#exportSvg').click(),
+  ]);
+  assert.match(reportDownload.suggestedFilename(), /\.zip$/);
+  const reportArchive = await readFile(await reportDownload.path());
+  assert.equal(reportArchive.readUInt32LE(0), 0x04034b50);
+  for (const text of ['protein_alignment_colored.svg', 'alignment_report.html', '排版與標註設定', 'DeepTMHMM 預測證據']) {
+    assert.ok(reportArchive.includes(Buffer.from(text)), `Missing ZIP report content: ${text}`);
+  }
   assert.deepEqual(pageErrors, [], 'Browser JavaScript errors');
   console.log(`Browser smoke passed for ${base.href}: demo, display settings, SVG, imports and TM appearance.`);
 }

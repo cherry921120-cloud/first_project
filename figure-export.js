@@ -13,7 +13,7 @@ function getFigureExportState() {
   end: $('exportEnd').value,
   preset: $('exportPreset').value,
   background: $('exportPngBackground').value,
-  uniProtReport: $('exportUniProtReport').checked,
+  alignmentReport: $('exportAlignmentReport').checked,
   names: [...$('exportNames').querySelectorAll('input:checked')].map(input => input.value),
  };
 }
@@ -23,7 +23,7 @@ function setFigureExportState(state) {
  $('exportScope').value = state.scope === 'range' ? 'range' : 'all';
  $('exportPreset').value = Object.hasOwn(figurePresets, state.preset) ? state.preset : 'current';
  $('exportPngBackground').value = state.background === 'transparent' ? 'transparent' : 'white';
- $('exportUniProtReport').checked = state.uniProtReport === true;
+ $('exportAlignmentReport').checked = (state.alignmentReport ?? state.uniProtReport) === true;
  for (const [id, value] of [['exportStart', state.start], ['exportEnd', state.end]]) {
   if (['number', 'string'].includes(typeof value) && /^\d*$/.test(String(value))) {
    $(id).value = String(value);
@@ -58,7 +58,7 @@ function getFigureOptions() {
   padding,
   scale,
   background: state.background,
-  uniProtReport: state.uniProtReport,
+  alignmentReport: state.alignmentReport,
  };
 }
 
@@ -129,19 +129,16 @@ function getFigureEvidence(tag, options) {
   : '';
 }
 
-function getFigureUniProtReport(options) {
+function getAlignmentReport(options, format) {
  const {alignment, records} = getFigureEvidenceReport(options);
  const selected = new Set(options.names);
- const lookups = [...tmUniProtLookups.values()].filter(entry => selected.has(entry.sequenceId));
- const uniProtRecords = records.filter(record => record.source === 'UniProt');
- if (!lookups.length && !uniProtRecords.length) return null;
- return {alignment, rangeStart:options.start + 1, rangeEnd:options.end, lookups, records:uniProtRecords};
-}
-
-function showMissingUniProtReport(options, report) {
- if (options.uniProtReport && !report) {
-  $('exportStatus').textContent += '。此匯出範圍沒有 UniProt 查閱資料，已略過報告。';
- }
+ const forSequences = entries => [...entries.values()].filter(entry => selected.has(entry.sequenceId));
+ return {
+  alignment, rangeStart:options.start + 1, rangeEnd:options.end,
+  settings:captureAlignmentReportSettings({...options, format}),
+  lookups:forSequences(tmUniProtLookups), records:records.filter(record => record.source === 'UniProt'),
+  deepTmLookups:forSequences(tmDeepLookups), deepTmRecords:records.filter(record => record.source === 'DeepTMHMM')
+ };
 }
 
 function getFigureTitle(options) {
@@ -264,7 +261,7 @@ async function pngFigure(options) {
 
 function prepareFigurePrint(options) {
  if ($('alignmentPrint')) return;
- const report = options.uniProtReport ? getFigureUniProtReport(options) : null;
+ const report = options.alignmentReport ? getAlignmentReport(options, 'pdf') : null;
  const figure = makeFigureContainer(options);
  figure.id = 'alignmentPrint';
  const title = document.createElement('h1');
@@ -278,10 +275,9 @@ function prepareFigurePrint(options) {
  if (report) {
   const appendix = document.createElement('div');
   appendix.id = 'alignmentPrintReport';
-  appendix.innerHTML = '<style>'+uniProtReportStyles+'</style>'+uniProtReportBody(report);
+  appendix.innerHTML = '<style>'+alignmentReportStyles+'</style>'+alignmentReportBody(report);
   document.body.append(appendix);
  }
- showMissingUniProtReport(options, report);
  document.body.classList.add('figure-print-active');
 }
 
@@ -301,7 +297,7 @@ async function downloadFigure(format) {
  try {
   updateFigureExport();
   const options = getFigureOptions();
-  const report = options.uniProtReport ? getFigureUniProtReport(options) : null;
+  const report = options.alignmentReport ? getAlignmentReport(options, format) : null;
   const filename = 'protein_alignment_colored.'+format;
   let content, type;
   if (format === 'html') {
@@ -315,14 +311,13 @@ async function downloadFigure(format) {
    type = 'image/png';
   }
   if (report) {
-   const zip = await createUniProtReportZip([
+   const zip = await createAlignmentReportZip([
     {name:filename, content},
-    {name:'uniprot_report.html', content:uniProtReportDocument(report)}
+    {name:'alignment_report.html', content:alignmentReportDocument(report)}
    ]);
-   saveBlob(zip, 'application/zip', 'protein_alignment_'+format+'_with_uniprot.zip');
+   saveBlob(zip, 'application/zip', 'protein_alignment_'+format+'_with_report.zip');
   } else {
    saveBlob(content, type, filename);
-   showMissingUniProtReport(options, report);
   }
  } catch (error) {
   figureError(error);
